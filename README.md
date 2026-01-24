@@ -50,6 +50,10 @@ To add a new skill:
 3. Add any scripts or resources in a `scripts/` directory
 4. Document usage in the `SKILL.md`
 
+## Disclaimer
+
+These skills are provided as-is, without warranty of any kind. Use at your own risk. You are responsible for ensuring your use complies with applicable terms of service and laws.
+
 ## License
 
 MIT
