@@ -14,7 +14,23 @@ npx skills add asebesta/claude-skills/<skill-name>
 
 | Skill | Description |
 |-------|-------------|
+| [bloomerang-api](./bloomerang-api) | Bloomerang CRM API integration reference for donor management features |
 | [ios-app-store-competitor-research](./ios-app-store-competitor-research) | Extract app metadata and screenshots from Apple App Store listings for competitive analysis |
+| [virtuous-api](./virtuous-api) | Virtuous CRM API integration reference for donor management features |
+
+### bloomerang-api
+
+Reference for integrating with the Bloomerang CRM REST API. Use when writing code that interacts with the Bloomerang API for donor management, including Constituents, Transactions, Pledges, Campaigns, Appeals, Interactions, Tasks, and Relationships.
+
+**Install:**
+```bash
+npx skills add asebesta/claude-skills/bloomerang-api
+```
+
+**Triggers on:**
+- Code involving Bloomerang API integration
+- Donor management features using Bloomerang
+- Questions about Bloomerang endpoints, authentication, or data models
 
 ### ios-app-store-competitor-research
 
@@ -28,6 +44,20 @@ npx skills add asebesta/claude-skills/ios-app-store-competitor-research
 **Triggers on:**
 - App Store URLs (apps.apple.com)
 - Requests like "research this app", "analyze competitor", "get app store info"
+
+### virtuous-api
+
+Reference for integrating with the Virtuous CRM REST API. Use when writing code that interacts with the Virtuous API for donor management, including Contacts, Individuals, Gifts, Projects, Campaigns, Events, Grants, Tasks, and Webhooks.
+
+**Install:**
+```bash
+npx skills add asebesta/claude-skills/virtuous-api
+```
+
+**Triggers on:**
+- Code involving Virtuous API integration
+- Donor management features using Virtuous
+- Questions about Virtuous endpoints, authentication, or data models
 
 ## Skill Structure
 
