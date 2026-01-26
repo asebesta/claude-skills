@@ -130,3 +130,7 @@ Search patterns (use grep or jq):
 - Endpoints: `jq '.paths | keys'`
 - Schemas: `jq '.components.schemas | keys'`
 - Specific endpoint: `jq '.paths["/constituent/{id}"]'`
+
+## Disclaimer
+
+This skill is not affiliated with, endorsed by, or sponsored by Bloomerang. It references publicly available API documentation for educational and integration purposes. The information may be outdated or incomplete. Always refer to the official Bloomerang documentation for the most current API specifications.

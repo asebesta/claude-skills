@@ -105,3 +105,7 @@ Search patterns (use grep):
 - HTTP method: `grep '"method": "POST"'`
 - URL paths: `grep '"path":'`
 - Response examples: `grep '"body":'`
+
+## Disclaimer
+
+This skill is not affiliated with, endorsed by, or sponsored by Virtuous. It references publicly available API documentation for educational and integration purposes. The information may be outdated or incomplete. Always refer to the official Virtuous documentation for the most current API specifications.
