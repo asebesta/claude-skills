@@ -16,6 +16,7 @@ npx skills add asebesta/claude-skills/<skill-name>
 |-------|-------------|
 | [bloomerang-api](./bloomerang-api) | Bloomerang CRM API integration reference for donor management features |
 | [ios-app-store-competitor-research](./ios-app-store-competitor-research) | Extract app metadata and screenshots from Apple App Store listings for competitive analysis |
+| [veo-video](./veo-video) | Generate videos using Google's Veo 3.1 API via the @google/genai SDK |
 | [virtuous-api](./virtuous-api) | Virtuous CRM API integration reference for donor management features |
 
 ### bloomerang-api
@@ -44,6 +45,20 @@ npx skills add asebesta/claude-skills/ios-app-store-competitor-research
 **Triggers on:**
 - App Store URLs (apps.apple.com)
 - Requests like "research this app", "analyze competitor", "get app store info"
+
+### veo-video
+
+Generate videos using Google's Veo 3.1 API. Includes prompting guide with shot types, camera movements, lighting, and style keywords, plus full API reference for all generation modes.
+
+**Install:**
+```bash
+npx skills add asebesta/claude-skills/veo-video
+```
+
+**Triggers on:**
+- Mentions of Veo, video generation, text-to-video, image-to-video, AI video
+- Building applications with Google's Veo API
+- Video prompt crafting and optimization
 
 ### virtuous-api
 
