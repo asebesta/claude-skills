@@ -14,10 +14,25 @@ npx skills add asebesta/claude-skills/<skill-name>
 
 | Skill | Description |
 |-------|-------------|
+| [blackbaud-renxt-api](./blackbaud-renxt-api) | Blackbaud Raiser's Edge NXT SKY API integration reference for nonprofit fundraising and donor management |
 | [bloomerang-api](./bloomerang-api) | Bloomerang CRM API integration reference for donor management features |
 | [ios-app-store-competitor-research](./ios-app-store-competitor-research) | Extract app metadata and screenshots from Apple App Store listings for competitive analysis |
 | [veo-video](./veo-video) | Generate videos using Google's Veo 3.1 API via the @google/genai SDK |
 | [virtuous-api](./virtuous-api) | Virtuous CRM API integration reference for donor management features |
+
+### blackbaud-renxt-api
+
+Reference for integrating with the Blackbaud SKY API for Raiser's Edge NXT. Use when writing code that interacts with the Blackbaud SKY API for nonprofit fundraising and donor management, including Constituents, Gifts, Fundraising (Campaigns/Funds/Appeals), Opportunities, Actions/Interactions, and Events.
+
+**Install:**
+```bash
+npx skills add asebesta/claude-skills/blackbaud-renxt-api
+```
+
+**Triggers on:**
+- Code involving Blackbaud SKY API or Raiser's Edge NXT integration
+- Nonprofit fundraising and donor management features using Blackbaud
+- Questions about Blackbaud RE NXT endpoints, authentication, or data models
 
 ### bloomerang-api
 
