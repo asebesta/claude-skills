@@ -1,0 +1,105 @@
+{
+  "$comment": "Structured reference for DonorPerfect database tables accessible via Dynamic Query SELECT statements. Source: DPO_SUP_Manual_XML_API_Documentation050324.pdf. DonorPerfect runs on MS SQL Server 2019; ANSI SQL syntax. All SELECT queries are subject to a 500-row retrieval limit.",
+  "tables": {
+    "DP": {
+      "purpose": "Primary donor / constituent record.",
+      "key_columns": ["DONOR_ID", "FIRST_NAME", "LAST_NAME", "MIDDLE_NAME", "TITLE", "SUFFIX", "SALUTATION", "PROF_TITLE", "OPT_LINE", "ADDRESS", "ADDRESS2", "CITY", "STATE", "ZIP", "COUNTRY", "ADDRESS_TYPE", "HOME_PHONE", "BUSINESS_PHONE", "FAX_PHONE", "MOBILE_PHONE", "EMAIL", "ORG_REC", "DONOR_TYPE", "NOMAIL", "NOMAIL_REASON", "NARRATIVE", "DONOR_RCPT_TYPE", "GIFT_AID_ELIGIBLE", "CREATED_DATE", "CREATED_BY", "MODIFIED_DATE", "MODIFIED_BY"],
+      "notes": "Updates via dp_savedonor. ORG_REC='Y' = organization. DONOR_TYPE codes IN/CO are standard but configurable. GIFT_AID_ELIGIBLE = 'Y'/'NO' for UK Gift Aid."
+    },
+    "DPUDF": {
+      "purpose": "User-Defined Fields associated with DP donors.",
+      "key_columns": ["DONOR_ID", "FIELD_NAME", "CHAR_VALUE", "DATE_VALUE", "NUMBER_VALUE"],
+      "notes": "Saved via dp_save_udf_xml with @matching_id=<donor_id>. UK Gift Aid uses GA_TITLE, GA_ADDRESS here. Quebec Law 25: PM_CONSENT, PM_CONSENT_DT, PM_CONSENT_EXPIRY, PM_DELETE, PM_DELETE_DT live here."
+    },
+    "DPCODES": {
+      "purpose": "Drop-down code values shown in UI (GL codes, Solicit codes, Campaign codes, Memory/Honor types, etc.).",
+      "key_columns": ["FIELD_NAME", "CODE", "CODE_ID", "DESCRIPTION", "INACTIVE", "CODE_DATE"],
+      "notes": "Updated via dp_savecode. Common FIELD_NAME values: GL_CODE, SOLICIT_CODE, SUB_SOLICIT_CODE, CAMPAIGN, MEMORY_HONOR, ADDRESS_TYPE, DONOR_TYPE, EMAIL_TYPE, FLAG, LINK_TYPE. Use INACTIVE='N' to keep in dropdowns."
+    },
+    "DPUSERMULTIVALUES": {
+      "purpose": "Checkbox-field values (e.g., Donor Interests in Bio tab).",
+      "key_columns": ["MATCHING_ID", "FIELD_NAME", "CODE"],
+      "notes": "MATCHING_ID = DONOR_ID. Only checked boxes have rows. Set via mergemultivalues (preferred). NOT the same as flags."
+    },
+    "DPFLAGS": {
+      "purpose": "Donor flags (top of Main tab — e.g., Alumni, Board Member).",
+      "key_columns": ["DONOR_ID", "FLAG"],
+      "notes": "Set via dp_saveflag_xml; delete ALL via dp_delflags_xml. FLAG codes come from DPCODES where FIELD_NAME='FLAG'."
+    },
+    "DPGIFT": {
+      "purpose": "Gift / pledge / transaction records.",
+      "key_columns": ["GIFT_ID", "DONOR_ID", "RECORD_TYPE", "GIFT_DATE", "AMOUNT", "TOTAL", "BALANCE", "GL", "GL_CODE", "SOLICIT_CODE", "SUB_SOLICIT_CODE", "CAMPAIGN", "GIFT_TYPE", "SPLIT_GIFT", "PLEDGE_PAYMENT", "REFERENCE", "TRANSACTION_ID", "MEMORY_HONOR", "GFNAME", "GLNAME", "FMV", "BATCH_NO", "GIFT_NARRATIVE", "TY_LETTER_NO", "GLINK", "PLINK", "ALINK", "NOCALC", "RECEIPT", "CURRENCY", "RECEIPT_DELIVERY_G", "ANONGIFT", "GIFT_AID_DATE", "GIFT_AID_AMT", "GIFT_AID_ELIGIBLE_G", "CREATED_DATE", "CREATED_BY", "MODIFIED_DATE", "MODIFIED_BY"],
+      "notes": "RECORD_TYPE values: G=Gift, P=Pledge, M=Main (split header), S=Soft credit, A=Original (adjustment), H=Adjustment, C=Cancelled to zero, J=Split cancelled, N=Notification. GLINK relates split children to Main, or soft credits to gifts. PLINK relates pledge payments to parent pledges. ALINK relates resulting gifts to original (adjustment chain)."
+    },
+    "DPGIFTUDF": {
+      "purpose": "User-Defined Fields on gifts.",
+      "key_columns": ["GIFT_ID", "FIELD_NAME", "CHAR_VALUE", "DATE_VALUE", "NUMBER_VALUE", "EFT"],
+      "notes": "Saved via dp_save_udf_xml with @matching_id=<gift_id>. EFT='Y' on a parent pledge enables auto-processing by DP's EFT engine."
+    },
+    "DPADDRESS": {
+      "purpose": "Additional / seasonal donor addresses (Address tab).",
+      "key_columns": ["ADDRESS_ID", "DONOR_ID", "OPT_LINE", "ADDRESS", "ADDRESS2", "ADDRESS3", "ADDRESS4", "CITY", "STATE", "ZIP", "COUNTRY", "UKCOUNTY", "ADDRESS_TYPE", "GETMAIL", "SEASONAL_FROM_DATE", "SEASONAL_TO_DATE", "FIRST_NAME", "LAST_NAME", "MIDDLE_NAME", "TITLE", "SUFFIX", "PROF_TITLE", "SALUTATION", "EMAIL", "HOME_PHONE", "BUSINESS_PHONE", "FAX_PHONE", "MOBILE_PHONE", "ORG_REC"],
+      "notes": "Saved via dp_saveaddress. Seasonal dates are MMYY format. Join to DPADDRESSUDF on ADDRESS_ID."
+    },
+    "DPADDRESSUDF": {
+      "purpose": "User-Defined Fields on DPADDRESS records.",
+      "key_columns": ["ADDRESS_ID", "FIELD_NAME", "CHAR_VALUE", "DATE_VALUE", "NUMBER_VALUE"],
+      "notes": "Saved via dp_save_udf_xml with @matching_id=<address_id>."
+    },
+    "DPLINK": {
+      "purpose": "Relationships/links between donors (Links tab).",
+      "key_columns": ["LINK_ID", "DONOR_ID", "DONOR_ID2", "LINK_CODE"],
+      "notes": "Saved via dp_savelink. Reciprocal links are auto-created (Parent ↔ Child, etc.). LINK_CODE comes from DPCODES."
+    },
+    "DPCONTACT": {
+      "purpose": "Contact records (Contacts tab) — activities, tasks, meetings, etc.",
+      "key_columns": ["CONTACT_ID", "DONOR_ID", "ACTIVITY_CODE", "MAILING_CODE", "BY_WHOM", "CONTACT_DATE", "DUE_DATE", "DUE_TIME", "COMPLETED_DATE", "COMMENT", "DOCUMENT_PATH"],
+      "notes": "Saved via dp_savecontact. ACTIVITY_CODE values from DPCODES (Code Maintenance > Activity Code/Contact Screen)."
+    },
+    "DPCONTACTUDF": {
+      "purpose": "User-Defined Fields on DPCONTACT records.",
+      "key_columns": ["CONTACT_ID", "FIELD_NAME", "CHAR_VALUE", "DATE_VALUE", "NUMBER_VALUE"],
+      "notes": "Saved via dp_save_udf_xml with @matching_id=<contact_id>."
+    },
+    "DPTHERINFO": {
+      "purpose": "Other Info records (Other Info tab) — free-form additional info dated entries.",
+      "key_columns": ["OTHER_ID", "DONOR_ID", "OTHER_DATE", "COMMENTS"],
+      "notes": "Saved via dp_saveotherinfo. Quebec Law 25 PO_* fields live on DPTHERINFOUDF."
+    },
+    "DPTHERINFOUDF": {
+      "purpose": "User-Defined Fields on DPTHERINFO records.",
+      "key_columns": ["OTHER_ID", "FIELD_NAME", "CHAR_VALUE", "DATE_VALUE", "NUMBER_VALUE"],
+      "notes": "Saved via dp_save_udf_xml with @matching_id=<other_id>. Quebec Law 25 PO_CONSENT, PO_CONSENT_DT, PO_CONSENT_EXPIRY, PO_DELETE, PO_DELETE_DT, PO_EXPORT_DT, PO_NOTES live here."
+    },
+    "DPTRIBUTESANON": {
+      "purpose": "Tributes (In Honor Of / In Memory Of).",
+      "key_columns": ["TRIBUTEID", "NAME", "DPCODE_ID", "ACTIVEFLG", "USERCREATEDT", "CREATED_DATE", "LEGACY_ID"],
+      "notes": "Joined to DPTRIBUTESANON_GIFTASSOC on TRIBUTEID. DPCODE_ID references DPCODES.CODE_ID where FIELD_NAME='MEMORY_HONOR'."
+    },
+    "DPTRIBUTESANON_GIFTASSOC": {
+      "purpose": "Many-to-many link between gifts and tributes.",
+      "key_columns": ["GIFT_ID", "TRIBUTE_ID"],
+      "notes": "Created via dp_tribAnon_AssocTribsToGift."
+    },
+    "DPTRIBUTESANON_RECIPIENTS": {
+      "purpose": "Recipients (notificants) for tributes.",
+      "key_columns": ["TRIBUTEID", "DONOR_ID", "CREATEDDATE"],
+      "notes": "Updated via dp_tribAnon_Update (sets the full list at once) or per-gift via dp_tribAnon_SaveTribRecipient."
+    },
+    "DPPAYMENTMETHOD": {
+      "purpose": "Payment methods for EFT transactions (Accounts tab).",
+      "key_columns": ["DPPAYMENTMETHODID", "DONOR_ID", "ISDEFAULT", "ACCOUNTTYPE", "DPPAYMENTMETHODTYPEID", "CARDNUMBERLASTFOUR", "CARDEXPIRATIONDATE", "BANKACCOUNTNUMBERLASTFOUR", "NAMEONACCOUNT", "CREATEDDATE", "MODIFIEDDATE", "CUSTOMERVAULTID", "IMPORT_ID", "CREATED_BY", "MODIFIED_BY", "SELECTED_CURRENCY", "WL_IMPORT_ID", "NOTFOUNDONGATEWAY", "LAST_SYNC_DATE"],
+      "notes": "Insert via dp_PaymentMethod_Insert, update via dp_PaymentMethod_Update. Tied to SafeSave Customer Vault. Update REQUIRES re-supplying all existing values."
+    },
+    "SD_FIELD": {
+      "purpose": "Field definition metadata — used to test for field presence in a DP system.",
+      "key_columns": ["FIELD_NAME"],
+      "notes": "Query before sending UDF API calls — e.g., SELECT DISTINCT field_name FROM sd_field WHERE field_name LIKE 'PM_%' OR field_name LIKE 'PO_%' to check Quebec Law 25 fields exist."
+    }
+  },
+  "delta_query_pattern": {
+    "description": "Recommended pattern to retrieve recent gift changes against the 500-row limit.",
+    "example": "SELECT TOP 500 gift_id, amount, created_date, modified_date, gl_code FROM dpgift WHERE COALESCE(DPGIFT.MODIFIED_DATE, DPGIFT.CREATED_DATE) >= '{date}' AND gift_id > {last_gift_id} ORDER BY gift_id",
+    "notes": "COALESCE returns first non-NULL — modified_date if it exists, else created_date. Repeat with the last gift_id returned until you get fewer than 500 rows."
+  }
+}

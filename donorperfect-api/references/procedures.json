@@ -1,0 +1,542 @@
+{
+  "$comment": "Structured reference for the 25 predefined procedures of the DonorPerfect Online XML API (v7.1, 2024.02.16). Source: DPO_SUP_Manual_XML_API_Documentation050324.pdf. Each procedure is invoked as action=<name> at https://www.donorperfect.net/prod/xmlrequest.asp with named parameters in &params=.",
+  "procedures": {
+    "dp_donorsearch": {
+      "purpose": "Search for donors by demographic criteria. Use % as wildcard. NULL fields = match anything.",
+      "returns": "List of matching donor records (donor_id, first_name, last_name, title, suffix, address, opt_line, city, state, zip, gifts, gift_total, address2, donor_name, city_state_zip).",
+      "notes": [
+        "Alphanumeric fields must be wrapped in single quotes.",
+        "Empty fields are NULL not empty string \"\"; search on '' returns nothing.",
+        "Searching NULL is the same as searching '%'.",
+        "For different return fields, use a Dynamic SELECT instead."
+      ],
+      "parameters": [
+        {"name": "@donor_id", "type": "numeric", "notes": "NULL to search all donors"},
+        {"name": "@last_name", "type": "Nvarchar(75)", "notes": "NULL if not searching"},
+        {"name": "@first_name", "type": "Nvarchar(50)"},
+        {"name": "@opt_line", "type": "Nvarchar(100)"},
+        {"name": "@address", "type": "Nvarchar(100)"},
+        {"name": "@city", "type": "Nvarchar(50)"},
+        {"name": "@state", "type": "Nvarchar(30)"},
+        {"name": "@zip", "type": "Nvarchar(20)"},
+        {"name": "@country", "type": "Nvarchar(30)"},
+        {"name": "@filter_id", "type": "numeric", "notes": "Always NULL"},
+        {"name": "@user_id", "type": "Nvarchar(20)"}
+      ]
+    },
+    "dp_savedonor": {
+      "purpose": "Create or update a donor/constituent.",
+      "returns": "donor_id of created donor; for updates, returns 0.",
+      "notes": [
+        "@donor_id=0 creates a new record; passing an existing donor_id updates it.",
+        "When updating, all specified fields OVERWRITE existing values.",
+        "Use two consecutive single quotes ('') inside strings to embed an apostrophe (O''Reilly).",
+        "Do not put spaces in the leading part of the URL or the API will report missing @donor_id."
+      ],
+      "parameters": [
+        {"name": "@donor_id", "type": "numeric", "notes": "0 for new; existing donor_id to update"},
+        {"name": "@first_name", "type": "varchar(50)"},
+        {"name": "@last_name", "type": "varchar(75)"},
+        {"name": "@middle_name", "type": "varchar(50)"},
+        {"name": "@suffix", "type": "varchar(50)"},
+        {"name": "@title", "type": "varchar(50)", "notes": "NULL if none"},
+        {"name": "@salutation", "type": "varchar(130)"},
+        {"name": "@prof_title", "type": "varchar(100)"},
+        {"name": "@opt_line", "type": "varchar(100)"},
+        {"name": "@address", "type": "varchar(100)"},
+        {"name": "@address2", "type": "varchar(100)"},
+        {"name": "@city", "type": "varchar(50)"},
+        {"name": "@state", "type": "varchar(30)"},
+        {"name": "@zip", "type": "varchar(20)"},
+        {"name": "@country", "type": "varchar(30)"},
+        {"name": "@address_type", "type": "varchar(30)"},
+        {"name": "@home_phone", "type": "varchar(40)"},
+        {"name": "@business_phone", "type": "varchar(40)"},
+        {"name": "@fax_phone", "type": "varchar(40)"},
+        {"name": "@mobile_phone", "type": "varchar(40)"},
+        {"name": "@email", "type": "varchar(75)"},
+        {"name": "@org_rec", "type": "varchar(1)", "notes": "'Y' for organization, 'N' for individual"},
+        {"name": "@donor_type", "type": "varchar(30)", "notes": "'IN' for Individual or 'CO' for Corporate; configurable via DONOR_TYPE codes"},
+        {"name": "@nomail", "type": "varchar(1)", "notes": "'N' or 'Y'"},
+        {"name": "@nomail_reason", "type": "varchar(30)"},
+        {"name": "@narrative", "type": "text"},
+        {"name": "@donor_rcpt_type", "type": "Nvarchar(1)", "notes": "'I' individual, 'C' consolidated"},
+        {"name": "@user_id", "type": "Nvarchar(20)", "notes": "Application name for auditing; not validated against DP users"}
+      ]
+    },
+    "dp_gifts": {
+      "purpose": "Return a predefined set of fields for all gifts given by a donor.",
+      "returns": "Records with gift_date2, amount, total, sub_solicit_code, campaign, balance, gl, solicit_code, reference, record_type, gift_id, donor_id, anongift, gift_aid_date.",
+      "notes": ["Use a Dynamic SELECT if you need different/additional fields."],
+      "parameters": [
+        {"name": "@donor_id", "type": "numeric"}
+      ]
+    },
+    "dp_savegift": {
+      "purpose": "Create or update a gift, pledge payment, soft credit, split gift, or pledge payment.",
+      "returns": "gift_id of created/updated gift.",
+      "notes": [
+        "@gift_id=0 to create new; pass existing gift_id to update.",
+        "When @record_type='S' (soft credit), @glink must point to the actual gift's gift_id.",
+        "For split gifts: Main gift @record_type='M' @split_gift='N'; each split @record_type='G' @split_gift='Y' @glink=<main gift_id>; financial fields on the Main use literal 'SEE_SPLIT'.",
+        "For pledge payments: @pledge_payment='Y' and @plink=<parent pledge gift_id>.",
+        "Setting @nocalc='N' is required for the gift to appear on the reports dashboard.",
+        "DO NOT set code fields (@gl_code, @solicit_code, @sub_solicit_code, @campaign, @ty_letter_no) to '' — set to null when unused.",
+        "Do NOT include @first_gift — DP sets it automatically.",
+        "Fields recalculated by dp_savegift: @last_contrib_amt, @ytd, @ly_ytd, @gift_total, @gifts, @max_date, @max_amt, @avg_amt, @yrs_donated."
+      ],
+      "parameters": [
+        {"name": "@gift_id", "type": "numeric", "notes": "0 for new"},
+        {"name": "@donor_id", "type": "numeric"},
+        {"name": "@record_type", "type": "varchar(1)", "notes": "'G' regular gift or split entry, 'P' pledge, 'M' main split header, 'S' soft credit, 'A' original (for adjustments), 'H' adjustment, 'C'/'J' adjusted-to-zero"},
+        {"name": "@gift_date", "type": "datetime", "notes": "'MM/DD/YYYY' only; no time"},
+        {"name": "@amount", "type": "money"},
+        {"name": "@gl_code", "type": "varchar(30)", "notes": "DPCODES value; null when unused"},
+        {"name": "@solicit_code", "type": "varchar(30)", "notes": "DPCODES value; null when unused"},
+        {"name": "@sub_solicit_code", "type": "varchar(30)"},
+        {"name": "@campaign", "type": "varchar(30)"},
+        {"name": "@gift_type", "type": "varchar(30)", "notes": "e.g., 'VISAIC' for Visa instant charge"},
+        {"name": "@split_gift", "type": "varchar(1)", "notes": "'Y' for split children, 'N' for Main or non-split"},
+        {"name": "@pledge_payment", "type": "varchar(1)", "notes": "'Y' if pledge payment (must also set @plink)"},
+        {"name": "@reference", "type": "Varchar(100)"},
+        {"name": "@transaction_id", "type": "numeric", "notes": "SafeSave Transaction ID; supersedes @reference"},
+        {"name": "@memory_honor", "type": "varchar(30)"},
+        {"name": "@gfname", "type": "varchar(50)"},
+        {"name": "@glname", "type": "varchar(75)"},
+        {"name": "@fmv", "type": "money"},
+        {"name": "@batch_no", "type": "numeric", "notes": "0 or other batch number; will NOT accept NULL"},
+        {"name": "@gift_narrative", "type": "nvarchar(4000)"},
+        {"name": "@ty_letter_no", "type": "varchar(30)", "notes": "Thank-you letter code; null when unused"},
+        {"name": "@glink", "type": "numeric", "notes": "For split children: gift_id of Main. For soft credit (record_type='S'): gift_id of actual gift. null otherwise."},
+        {"name": "@plink", "type": "numeric", "notes": "For pledge payments: gift_id of parent pledge. null for non-recurring."},
+        {"name": "@nocalc", "type": "varchar(1)", "notes": "Standard value 'N' so gifts appear in reports dashboard"},
+        {"name": "@receipt", "type": "varchar(1)", "notes": "'Y' or 'N' — never null/blank"},
+        {"name": "@old_amount", "type": "money"},
+        {"name": "@user_id", "type": "Nvarchar(20)"},
+        {"name": "@gift_aid_date", "type": "datetime", "notes": "UK Gift Aid"},
+        {"name": "@gift_aid_amt", "type": "money", "notes": "UK Gift Aid"},
+        {"name": "@gift_aid_eligible_g", "type": "Char(1)", "notes": "UK Gift Aid"},
+        {"name": "@currency", "type": "Nvarchar(3)", "notes": "Multi-currency code, e.g., 'USD', 'CAD'"},
+        {"name": "@receipt_delivery_g", "type": "varchar(1)", "notes": "N=do not acknowledge, E=email, B=email+letter, L=letter"},
+        {"name": "@acknowledgepref", "type": "varchar", "notes": "Canadian only: '1AR' Acknowledge/Receipt, '2AD' Ack/no Receipt, '3DD' no Ack/no Receipt"}
+      ]
+    },
+    "dp_savepledge": {
+      "purpose": "Create or update a parent pledge (not pledge payments).",
+      "returns": "gift_id of created pledge.",
+      "notes": [
+        "Subsequent pledge payments are created with dp_savegift using record_type='G' and @plink=<pledge gift_id>.",
+        "For DP's EFT functionality to auto-process pledge payments, the parent pledge's DPGIFTUDF.EFT field must be 'Y' (set via dp_save_udf_xml).",
+        "Populate @vault_id with the SafeSave Vault ID for the pledge to be active.",
+        "If @currency not specified, defaults to USD."
+      ],
+      "parameters": [
+        {"name": "@gift_id", "type": "numeric", "notes": "0 for new"},
+        {"name": "@donor_id", "type": "numeric"},
+        {"name": "@gift_date", "type": "datetime"},
+        {"name": "@start_date", "type": "datetime"},
+        {"name": "@total", "type": "money", "notes": "Total pledged or 0 for ad infinitum"},
+        {"name": "@bill", "type": "money", "notes": "Per-installment billing amount"},
+        {"name": "@frequency", "type": "varchar(30)", "notes": "M monthly, Q quarterly, S semi-annually, A annually"},
+        {"name": "@currency", "type": "Nvarchar(3)", "notes": "Default USD"},
+        {"name": "@reminder", "type": "varchar(1)"},
+        {"name": "@gl_code", "type": "varchar(30)"},
+        {"name": "@solicit_code", "type": "varchar(30)"},
+        {"name": "@initial_payment", "type": "varchar(1)", "notes": "'Y' for initial payment, else 'N'"},
+        {"name": "@sub_solicit_code", "type": "varchar(30)"},
+        {"name": "@writeoff_amount", "type": "money"},
+        {"name": "@writeoff_date", "type": "datetime"},
+        {"name": "@user_id", "type": "varchar(20)"},
+        {"name": "@campaign", "type": "varchar(30)"},
+        {"name": "@membership_type", "type": "varchar(30)"},
+        {"name": "@membership_level", "type": "varchar(30)"},
+        {"name": "@membership_enr_date", "type": "datetime"},
+        {"name": "@membership_exp_date", "type": "datetime"},
+        {"name": "@membership_link_ID", "type": "numeric"},
+        {"name": "@address_id", "type": "numeric"},
+        {"name": "@gift_narrative", "type": "nvarchar(4000)"},
+        {"name": "@ty_letter_no", "type": "varchar(30)"},
+        {"name": "@vault_id", "type": "numeric", "notes": "Required from SafeSave for active pledge"},
+        {"name": "@receipt_delivery_g", "type": "varchar(1)", "notes": "E/B/L/N or NULL"},
+        {"name": "@contact_id", "type": "numeric"}
+      ]
+    },
+    "dp_savecontact": {
+      "purpose": "Save fields to DPCONTACT — creates or updates a Contact record for a donor.",
+      "returns": "contact_id of saved record.",
+      "notes": [
+        "Codes for @activity_code, @mailing_code, @by_whom come from DPCODES / Code Maintenance.",
+        "@completed_date typically null — assigned user marks complete in UI."
+      ],
+      "parameters": [
+        {"name": "@contact_id", "type": "numeric", "notes": "0 to create new"},
+        {"name": "@donor_id", "type": "numeric"},
+        {"name": "@activity_code", "type": "varchar(30)"},
+        {"name": "@mailing_code", "type": "varchar(30)"},
+        {"name": "@by_whom", "type": "varchar(30)"},
+        {"name": "@contact_date", "type": "datetime"},
+        {"name": "@due_date", "type": "datetime"},
+        {"name": "@due_time", "type": "varchar(20)", "notes": "'hh:mm xx' format e.g., '02:00 PM'"},
+        {"name": "@completed_date", "type": "datetime"},
+        {"name": "@comment", "type": "varchar(4000)"},
+        {"name": "@document_path", "type": "varchar(200)"},
+        {"name": "@user_id", "type": "varchar(20)"}
+      ]
+    },
+    "dp_saveotherinfo": {
+      "purpose": "Save fields to DPTHERINFO — creates or updates an Other Info record for a donor.",
+      "returns": "other_id of saved record (used as @matching_id for DPTHERINFOUDF saves).",
+      "notes": [],
+      "parameters": [
+        {"name": "@other_id", "type": "numeric", "notes": "0 to create new"},
+        {"name": "@donor_id", "type": "numeric"},
+        {"name": "@other_date", "type": "datetime"},
+        {"name": "@comments", "type": "nvarchar(4000)"},
+        {"name": "@user_id", "type": "varchar(20)"}
+      ]
+    },
+    "dp_saveaddress": {
+      "purpose": "Add or update a secondary/seasonal address (DPADDRESS table — appears in Address tab).",
+      "returns": "address_id of created or updated address.",
+      "notes": ["Seasonal dates use MMYY format (e.g., 1117 = November 2017)."],
+      "parameters": [
+        {"name": "@address_id", "type": "numeric", "notes": "0 to create new"},
+        {"name": "@donor_id", "type": "numeric"},
+        {"name": "@opt_line", "type": "varchar(100)"},
+        {"name": "@address", "type": "varchar(100)"},
+        {"name": "@address2", "type": "varchar(100)"},
+        {"name": "@city", "type": "varchar(50)"},
+        {"name": "@state", "type": "varchar(30)"},
+        {"name": "@zip", "type": "varchar(20)"},
+        {"name": "@country", "type": "varchar(30)"},
+        {"name": "@address_type", "type": "varchar(30)"},
+        {"name": "@getmail", "type": "varchar(1)", "notes": "'Y' or 'N'"},
+        {"name": "@user_id", "type": "varchar(20)"},
+        {"name": "@title", "type": "varchar(50)"},
+        {"name": "@first_name", "type": "varchar(50)"},
+        {"name": "@middle_name", "type": "varchar(50)"},
+        {"name": "@last_name", "type": "varchar(75)"},
+        {"name": "@suffix", "type": "varchar(50)"},
+        {"name": "@prof_title", "type": "varchar(100)"},
+        {"name": "@salutation", "type": "varchar(130)"},
+        {"name": "@seasonal_from_date", "type": "varchar(4)", "notes": "MMYY"},
+        {"name": "@seasonal_to_date", "type": "varchar(4)", "notes": "MMYY"},
+        {"name": "@email", "type": "varchar(75)"},
+        {"name": "@home_phone", "type": "varchar(40)"},
+        {"name": "@business_phone", "type": "varchar(40)"},
+        {"name": "@fax_phone", "type": "varchar(40)"},
+        {"name": "@mobile_phone", "type": "varchar(40)"},
+        {"name": "@address3", "type": "varchar(100)"},
+        {"name": "@address4", "type": "varchar(100)"},
+        {"name": "@ukcounty", "type": "varchar(100)"},
+        {"name": "@org_rec", "type": "varchar(1)"}
+      ]
+    },
+    "dp_save_udf_xml": {
+      "purpose": "Save a single User Defined Field (UDF) value to any UDF table.",
+      "returns": "donor_id (or matching_id) of updated record.",
+      "notes": [
+        "@matching_id chooses which UDF table: donor_id => DPUDF; gift_id => DPGIFTUDF; contact_id => DPCONTACTUDF; other_id => DPTHERINFOUDF; address_id => DPADDRESSUDF.",
+        "Use only one of @char_value / @date_value / @number_value based on @data_type; set the others to null.",
+        "UDF field must already exist in your DP system (Code Maintenance > Field Definitions).",
+        "Quebec Law 25 fields (PM_*, PO_*) are stored as UDFs — use this call."
+      ],
+      "parameters": [
+        {"name": "@matching_id", "type": "numeric"},
+        {"name": "@field_name", "type": "varchar(20)"},
+        {"name": "@data_type", "type": "varchar(1)", "notes": "C Character, D Date, N Numeric"},
+        {"name": "@char_value", "type": "Nvarchar(2000)", "notes": "null unless C"},
+        {"name": "@date_value", "type": "Datetime", "notes": "null unless D; MM/DD/YYYY"},
+        {"name": "@number_value", "type": "numeric", "notes": "null unless N"},
+        {"name": "@user_id", "type": "varchar(20)"}
+      ]
+    },
+    "dp_savecode": {
+      "purpose": "Add or update a DPCODES drop-down value (GL codes, solicit codes, campaign codes, etc.).",
+      "returns": "0 on create/update; '2' if @original_code=NULL and @code already exists (no-op).",
+      "notes": [
+        "Behavior of @original_code:",
+        "  - @original_code=@code AND code exists => UPDATE",
+        "  - @original_code=NULL AND code exists => returns '2', no update",
+        "  - @original_code=NULL OR @original_code=@code AND code does NOT exist => CREATE",
+        "Set @inactive='N' for codes to appear in UI dropdowns.",
+        "Many parameters can be NULL — typically supply only @field_name, @code, @description, @inactive, @user_id."
+      ],
+      "parameters": [
+        {"name": "@field_name", "type": "varchar(20)", "notes": "Existing field type from DPCODES"},
+        {"name": "@code", "type": "varchar(30)"},
+        {"name": "@description", "type": "varchar(100)"},
+        {"name": "@original_code", "type": "varchar(20)", "notes": "NULL for new; existing code for update"},
+        {"name": "@code_date", "type": "Datetime"},
+        {"name": "@mcat_hi", "type": "money"},
+        {"name": "@mcat_lo", "type": "money"},
+        {"name": "@mcat_gl", "type": "varchar(1)"},
+        {"name": "@acct_num", "type": "varchar(30)"},
+        {"name": "@campaign", "type": "varchar(30)"},
+        {"name": "@solicit_code", "type": "varchar(30)"},
+        {"name": "@overwrite", "type": "varchar(1)", "notes": "'Y' to update existing; 'N'/NULL for new"},
+        {"name": "@inactive", "type": "varchar(1)", "notes": "'N' active, 'Y' inactive"},
+        {"name": "@client_id", "type": "varchar"},
+        {"name": "@available_for_sol", "type": "varchar"},
+        {"name": "@user_id", "type": "varchar(20)"},
+        {"name": "@cashact", "type": "varchar"},
+        {"name": "@membership_type", "type": "varchar"},
+        {"name": "@leeway_days", "type": "varchar"},
+        {"name": "@comments", "type": "varchar(2000)"},
+        {"name": "@begin_date", "type": "datetime"},
+        {"name": "@end_date", "type": "datetime"},
+        {"name": "@ty_prioritize", "type": "char(1)"},
+        {"name": "@ty_filter_id", "type": "varchar"},
+        {"name": "@ty_gift_option", "type": "varchar"},
+        {"name": "@ty_amount_option", "type": "varchar"},
+        {"name": "@ty_from_amount", "type": "varchar"},
+        {"name": "@ty_to_amount", "type": "varchar"},
+        {"name": "@ty_alternate", "type": "varchar"},
+        {"name": "@ty_priority", "type": "varchar"}
+      ]
+    },
+    "dp_savelink": {
+      "purpose": "Create a relationship link between two donors (DPLINK).",
+      "returns": "link_id of created link.",
+      "notes": [
+        "Reciprocal links are auto-created — e.g., Parent link from A to B yields Child link from B to A.",
+        "@link_code comes from Code Maintenance > Link Type codes (e.g., 'FR' friend, 'PA' parent)."
+      ],
+      "parameters": [
+        {"name": "@link_id", "type": "numeric", "notes": "0 for new"},
+        {"name": "@donor_id", "type": "numeric"},
+        {"name": "@donor_id2", "type": "numeric"},
+        {"name": "@link_code", "type": "varchar(30)"},
+        {"name": "@user_id", "type": "varchar(20)"}
+      ]
+    },
+    "dp_savemultivalue_xml": {
+      "purpose": "Set a single checkbox value in DPUSERMULTIVALUES. Prefer mergemultivalues instead.",
+      "returns": "matching_id (donor_id).",
+      "notes": [
+        "Checkbox = checked => row exists in DPUSERMULTIVALUES with matching_id=donor_id. Unchecked => no row.",
+        "Use mergemultivalues to set multiple values or unset some — this call only sets a single value."
+      ],
+      "parameters": [
+        {"name": "@matching_id", "type": "numeric", "notes": "donor_id"},
+        {"name": "@field_name", "type": "varchar(20)"},
+        {"name": "@code", "type": "Varchar(30)"},
+        {"name": "@user_id", "type": "varchar(20)"}
+      ]
+    },
+    "mergemultivalues": {
+      "purpose": "Replace the full set of checked values for a checkbox field — preferred way to set/unset checkboxes.",
+      "returns": "<result/> (empty).",
+      "notes": [
+        "Any CODE values not in @valuestring will be unset (unchecked).",
+        "Parameter names are different — @matchingid (no underscore), @fieldname, @valuestring.",
+        "List discoverable values: action=select code, description from dpcodes where field_name='<field>'.",
+        "List currently set values for a donor: action=select id, matching_id, code from dpusermultivalues where field_name='<field>' and matching_id=<donor_id>."
+      ],
+      "parameters": [
+        {"name": "@matchingid", "type": "numeric", "notes": "donor_id"},
+        {"name": "@fieldname", "type": "varchar(20)"},
+        {"name": "@valuestring", "type": "varchar(20)", "notes": "Comma-separated code values (e.g., 'CR, RE, ST')"}
+      ]
+    },
+    "dp_deletemultivalues_xml": {
+      "purpose": "Delete ALL checked checkbox values on a screen tab for a donor. Prefer mergemultivalues.",
+      "returns": "donor_id.",
+      "notes": [
+        "Recommended workflow: SELECT field_name, code from dpusermultivalues where field_name='<f>' and matching_id=<donor_id>; then delete; then re-save the ones you want to keep."
+      ],
+      "parameters": [
+        {"name": "@matching_id", "type": "numeric", "notes": "donor_id"},
+        {"name": "@table_name", "type": "varchar(20)", "notes": "Screen tab: MAIN, GIFT, PLEDGE, BIO, OTHER"},
+        {"name": "@user_id", "type": "varchar(20)"}
+      ]
+    },
+    "dp_saveflag_xml": {
+      "purpose": "Set a flag on a donor (DPFLAGS) — flags appear at the top of the Main tab.",
+      "returns": "matching id (donor_id/gift_id/other_id).",
+      "notes": [
+        "Flags are NOT the same as checkboxes — flags are in DPFLAGS, checkboxes in DPUSERMULTIVALUES.",
+        "Flag codes must be predefined in Settings > Code Maintenance.",
+        "Re-setting an existing flag returns a PRIMARY KEY violation error.",
+        "List flags for a donor: select * from dpflags where donor_id=<id>."
+      ],
+      "parameters": [
+        {"name": "@donor_id", "type": "Numeric", "notes": "or gift_id / other_id depending on target"},
+        {"name": "@flag", "type": "varchar(30)", "notes": "Code value from DPCODES (e.g., 'AL' for Alumni)"},
+        {"name": "@user_id", "type": "varchar(20)"}
+      ]
+    },
+    "dp_delflags_xml": {
+      "purpose": "Delete ALL flags for a donor (DPFLAGS).",
+      "returns": "donor_id.",
+      "notes": [
+        "Individual flag deletion is not currently supported — only all-or-nothing.",
+        "Workflow to keep some: SELECT * FROM dpflags WHERE donor_id=<id>; delete all; re-save desired ones via dp_saveflag_xml."
+      ],
+      "parameters": [
+        {"name": "@donor_id", "type": "numeric"},
+        {"name": "@user_id", "type": "varchar(20)"}
+      ]
+    },
+    "dp_tribAnon_MyTribSummary": {
+      "purpose": "Retrieve list of tributes (all or active-only).",
+      "returns": "Records with TributeID, ActiveFlg, Type, Name, Created, Gift_Amt, Gift_Count, Notif_Name.",
+      "notes": ["@userId must be null for API calls."],
+      "parameters": [
+        {"name": "@ShowAllRecords", "type": "numeric", "notes": "1 = all tributes, 0 = active only"},
+        {"name": "@userId", "type": "numeric", "notes": "Always null"}
+      ]
+    },
+    "dp_tribAnon_Search": {
+      "purpose": "Search tributes by tribute name.",
+      "returns": "Records with TributeID, Name, DPCode_ID, ActiveFlg, UserCreateDT, Created_Date, Legacy_ID, CodeDescription.",
+      "notes": [
+        "Use the returned DPCode_ID for matching tribute type in dp_tribAnon_Create."
+      ],
+      "parameters": [
+        {"name": "@Keywords", "type": "varchar(200)", "notes": "All or part of tribute name"},
+        {"name": "@IncludeInactive", "type": "Int", "notes": "1 to include inactive, 0 to exclude"}
+      ]
+    },
+    "dp_tribAnon_Create": {
+      "purpose": "Create a new tribute.",
+      "returns": "<result/> (empty).",
+      "notes": [
+        "Get @DPCodeID via: SELECT CODE, CODE_ID, DESCRIPTION FROM DPCODES WHERE FIELD_NAME='MEMORY_HONOR'. Common: M=In Memory Of, H=In Honor Of.",
+        "Run that query once per DP system — values are stable.",
+        "@Recipients accepts a single donor_id or pipe-delimited list ('11101|22202|33303') in single quotes."
+      ],
+      "parameters": [
+        {"name": "@Name", "type": "varchar(200)"},
+        {"name": "@DPCodeID", "type": "int", "notes": "From DPCODES where FIELD_NAME='MEMORY_HONOR'"},
+        {"name": "@ActiveFlg", "type": "Bit", "notes": "1 active, 0 inactive"},
+        {"name": "@UserCreateDt", "type": "Datetime", "notes": "MM/DD/YYYY (no time)"},
+        {"name": "@Recipients", "type": "Numeric", "notes": "donor_id or pipe-delimited list in quotes. Optional — omit to create with no recipients."}
+      ]
+    },
+    "dp_tribAnon_AssocTribsToGift": {
+      "purpose": "Associate a tribute (or comma-separated tributes) with a gift.",
+      "returns": "Record with TributeID.",
+      "notes": ["Use dp_tribAnon_MyTribSummary to discover TributeID values."],
+      "parameters": [
+        {"name": "@Gift_ID", "type": "numeric"},
+        {"name": "@TributeID_List", "type": "numeric", "notes": "Single TributeID or comma-separated list"}
+      ]
+    },
+    "dp_tribAnon_SaveTribRecipient": {
+      "purpose": "Add a tribute notification recipient for one specific gift.",
+      "returns": "Not specified.",
+      "notes": [
+        "MUST use named parameter syntax (@this=1, @that=2,).",
+        "Follow with dp_tribNotif_Save to actually create the notification record."
+      ],
+      "parameters": [
+        {"name": "@DonorId", "type": "numeric", "notes": "donor_id of recipient"},
+        {"name": "@TributeID", "type": "numeric"},
+        {"name": "@GiftID", "type": "numeric"},
+        {"name": "@Level", "type": "varchar(20)", "notes": "Always 'L'"}
+      ]
+    },
+    "dp_tribNotif_Save": {
+      "purpose": "Create the actual tribute gift notification record — runs AFTER dp_tribAnon_SaveTribRecipient.",
+      "returns": "gift_id of notification gift.",
+      "notes": [
+        "Notification shows as a new gift on the recipient with Type=Send Notification.",
+        "Appears in the Linked Gifts table of the original gift.",
+        "Most fields should mirror the original gift; key marker: @ty_letter_no='NT', @record_type='N', @gift_type='SN'."
+      ],
+      "parameters": [
+        {"name": "@Gift_ID", "type": "numeric", "notes": "0 for new"},
+        {"name": "@Donor_Id", "type": "numeric", "notes": "Recipient (may differ from original donor)"},
+        {"name": "@glink", "type": "numeric", "notes": "gift_id this notification refers to"},
+        {"name": "@tlink", "type": "numeric", "notes": "TributeID"},
+        {"name": "@amount", "type": "Money"},
+        {"name": "@total", "type": "Money"},
+        {"name": "@bill", "type": "Money", "notes": "0.00"},
+        {"name": "@start_date", "type": "Date", "notes": "null"},
+        {"name": "@frequency", "type": "Varchar", "notes": "null"},
+        {"name": "@gift_type", "type": "Varchar", "notes": "'SN'"},
+        {"name": "@record_type", "type": "Varchar", "notes": "'N' notification"},
+        {"name": "@gl_code", "type": "Varchar", "notes": "Same as original gift"},
+        {"name": "@solicit_code", "type": "Varchar"},
+        {"name": "@sub_solicit_code", "type": "Varchar"},
+        {"name": "@campaign", "type": "Varchar"},
+        {"name": "@ty_letter_no", "type": "Varchar(30)", "notes": "'NT'"},
+        {"name": "@fmv", "type": "Money"},
+        {"name": "@reference", "type": "Varchar"},
+        {"name": "@gfname", "type": "Varchar(50)"},
+        {"name": "@glname", "type": "Varchar(75)"},
+        {"name": "@gift_narrative", "type": "Nvarchar(4000)"},
+        {"name": "@membership_type", "type": "Varchar"},
+        {"name": "@membership_level", "type": "Varchar"},
+        {"name": "@membership_enr_date", "type": "Date"},
+        {"name": "@membership_exp_date", "type": "Date"},
+        {"name": "@address_id", "type": "Numeric", "notes": "0 unless letter going to alternate address"},
+        {"name": "@user_id", "type": "Varchar(20)"}
+      ]
+    },
+    "dp_tribAnon_Update": {
+      "purpose": "Update tribute properties AND recipient list (affects ALL gifts on the tribute, not per-gift).",
+      "returns": "Tribute record with TributeID, Name, ActiveFlg, UserCreateDt, DPCode_ID, CodeDescription, NotificantNames.",
+      "notes": [
+        "IMPORTANT: Must include EXISTING recipients in @recipients or they will be removed.",
+        "Retrieve existing: SELECT r.tributeid, t.name, r.donor_id, r.createddate, t.activeflg FROM dptributesanon t, dptributesanon_recipients r WHERE t.tributeid=r.tributeid AND t.tributeid={id}.",
+        "@recipients prefixed with N and wrapped in single quotes: @recipients=N'105|43256|323387|137'.",
+        "Do NOT need to follow with dp_tribNotif_Save."
+      ],
+      "parameters": [
+        {"name": "@TributeID", "type": "Numeric"},
+        {"name": "@name", "type": "Nvarchar(200)"},
+        {"name": "@dpcode_id", "type": "Numeric"},
+        {"name": "@ActiveFlg", "type": "Bit", "notes": "1 true/active, 0 false/inactive"},
+        {"name": "@UserCreateDt", "type": "Date"},
+        {"name": "@recipients", "type": "Numeric", "notes": "N'pipe|delimited|donor_ids'"}
+      ]
+    },
+    "dp_PaymentMethod_Insert": {
+      "purpose": "Insert a DP Payment Method (DPPAYMENTMETHOD). EFT Transactions feature must be enabled.",
+      "returns": "DpPaymentMethodID.",
+      "notes": [
+        "Normally populated by ecommerce integrations.",
+        "Requires SafeSave Customer Vault ID; create via SafeSave API first.",
+        "Once created, subsequent pledge payments can be processed through the DP UI without further API code."
+      ],
+      "parameters": [
+        {"name": "@CustomerVaultID", "type": "Nvarchar(55)", "notes": "0 for new Customer Vault record"},
+        {"name": "@donor_id", "type": "Int"},
+        {"name": "@IsDefault", "type": "Bit", "notes": "1 if default EFT method"},
+        {"name": "@AccountType", "type": "Nvarchar(256)", "notes": "e.g., 'Visa'"},
+        {"name": "@dpPaymentMethodTypeID", "type": "Nvarchar(20)", "notes": "e.g., 'creditcard'"},
+        {"name": "@CardNumberLastFour", "type": "Nvarchar(16)", "notes": "Masked: '4xxxxxxxxxxx1111'"},
+        {"name": "@CardExpirationDate", "type": "Nvarchar(10)", "notes": "MMYY format e.g., '0923'"},
+        {"name": "@BankAccountNumberLastFour", "type": "Nvarchar(50)"},
+        {"name": "@NameOnAccount", "type": "Nvarchar(256)"},
+        {"name": "@CreatedDate", "type": "datetime"},
+        {"name": "@ModifiedDate", "type": "datetime"},
+        {"name": "@import_id", "type": "int"},
+        {"name": "@created_by", "type": "Nvarchar(20)"},
+        {"name": "@modified_by", "type": "Nvarchar(20)"},
+        {"name": "@selected_currency", "type": "Nvarchar(3)", "notes": "'USD', 'CAD', etc."}
+      ]
+    },
+    "dp_PaymentMethod_Update": {
+      "purpose": "Update an existing DPPAYMENTMETHOD record.",
+      "returns": "Full record with DpPaymentMethodID, donor_id, IsDefault, AccountType, dpPaymentMethodTypeID, CardNumberLastFour, CardExpirationDate, BankAccountNumberLastFour, NameOnAccount, CreatedDate, ModifiedDate, CustomerVaultID, import_id, created_by, modified_by, selected_currency, wl_import_id, notFoundonGateway, last_sync_date.",
+      "notes": [
+        "Pre-step: SELECT * from dppaymentmethod where customervaultid=<id> — you MUST reload all existing values even if not changing them."
+      ],
+      "parameters": [
+        {"name": "@CustomerVaultID", "type": "nvarchar(55)"},
+        {"name": "@donor_id", "type": "int"},
+        {"name": "@IsDefault", "type": "int"},
+        {"name": "@AccountType", "type": "nvarchar(256)"},
+        {"name": "@dpPaymentMethodTypeID", "type": "nvarchar(20)"},
+        {"name": "@CardNumberLastFour", "type": "nvarchar(16)"},
+        {"name": "@CardExpirationDate", "type": "nvarchar(16)", "notes": "MMYY"},
+        {"name": "@BankAccountNumberLastFour", "type": "nvarchar(50)"},
+        {"name": "@NameOnAccount", "type": "nvarchar(256)"},
+        {"name": "@ModifiedDate", "type": "datetime", "notes": "MM/DD/YYYY"}
+      ]
+    }
+  }
+}

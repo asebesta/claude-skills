@@ -16,6 +16,7 @@ npx skills add asebesta/claude-skills/<skill-name>
 |-------|-------------|
 | [blackbaud-renxt-api](./blackbaud-renxt-api) | Blackbaud Raiser's Edge NXT SKY API integration reference for nonprofit fundraising and donor management |
 | [bloomerang-api](./bloomerang-api) | Bloomerang CRM API integration reference for donor management features |
+| [donorperfect-api](./donorperfect-api) | DonorPerfect Online XML API integration reference for donor management, gifts, pledges, tributes, and EFT |
 | [ios-app-store-competitor-research](./ios-app-store-competitor-research) | Extract app metadata and screenshots from Apple App Store listings for competitive analysis |
 | [veo-video](./veo-video) | Generate videos using Google's Veo 3.1 API via the @google/genai SDK |
 | [virtuous-api](./virtuous-api) | Virtuous CRM API integration reference for donor management features |
@@ -47,6 +48,21 @@ npx skills add asebesta/claude-skills/bloomerang-api
 - Code involving Bloomerang API integration
 - Donor management features using Bloomerang
 - Questions about Bloomerang endpoints, authentication, or data models
+
+### donorperfect-api
+
+Reference for integrating with the DonorPerfect Online XML API. Use when writing code that interacts with the DonorPerfect API for nonprofit donor management, including donor/constituent records, gifts, pledges, recurring gifts, soft credits, split gifts, gift adjustments, contacts, tributes, flags, checkbox fields, UDFs, codes, addresses, links, EFT payment methods, and direct SQL SELECT queries against DP tables.
+
+**Install:**
+```bash
+npx skills add asebesta/claude-skills/donorperfect-api
+```
+
+**Triggers on:**
+- Code involving DonorPerfect Online XML API integration
+- Donor management features using DonorPerfect (SofterWare)
+- Questions about DP procedures (`dp_savegift`, `dp_savedonor`, etc.), DP tables (DPGIFT, DPCODES, DPUDF, etc.), or DP data models
+- XML API calls returning `<result>`/`<record>` from `donorperfect.net/prod/xmlrequest.asp`
 
 ### ios-app-store-competitor-research
 
