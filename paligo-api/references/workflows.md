@@ -8,15 +8,40 @@ import requests, time
 BASE = "https://INSTANCE.paligoapp.com/api/v2"
 AUTH = ("user@example.com", "API_KEY")
 
+# Proactive pacing: seconds between calls per (method, resource), with ~10%
+# headroom under the documented per-minute limits. Values below are for the
+# BUSINESS plan — on Enterprise use reads 0.3, document writes 3.2.
+# See endpoints.md "Rate limits" for the full table.
+PACE = {
+    ("GET", "*"): 1.3,            # show/list: 50/min
+    ("PUT", "documents"): 6.5,    # update: 10/min
+    ("POST", "forks"): 3.3,       # create: 20/min
+    ("DELETE", "forks"): 3.3,
+    ("POST", "productions"): 66,  # create: 1/min (!)
+    ("POST", "imports"): 66,      # create: 1/min (!)
+    ("PUT", "*"): 6.5,            # other updates: 10/min
+    ("POST", "*"): 6.5,
+    ("DELETE", "*"): 6.5,
+}
+_last = {}
+
 def api(method, path, **kwargs):
+    resource = path.strip("/").split("/")[0].split("?")[0]
+    key = (method, resource) if (method, resource) in PACE else (method, "*")
+    wait = PACE.get(key, 1.3) - (time.monotonic() - _last.get(key, 0))
+    if wait > 0:
+        time.sleep(wait)
     while True:
+        _last[key] = time.monotonic()
         r = requests.request(method, f"{BASE}{path}", auth=AUTH, **kwargs)
-        if r.status_code == 429:
-            time.sleep(int(r.headers.get("Retry-After", "30")))
+        if r.status_code == 429:  # pacing was wrong — honor Retry-After exactly
+            time.sleep(int(r.headers.get("Retry-After", "60")))
             continue
         r.raise_for_status()
         return r.json() if r.content else None
 ```
+
+Rate-limit buckets are per endpoint+operation, so the per-key pacing above lets reads and writes interleave at full speed without tripping either bucket.
 
 ## Contents
 
@@ -83,8 +108,9 @@ for path, stub in walk_tree():
     (out / f"{doc['id']}.xml").write_text(doc["content"])
     (out / f"{doc['id']}.meta.json").write_text(json.dumps(
         {k: doc[k] for k in ("id","name","uuid","modified_at","checkout","languages")}))
-    time.sleep(1.3)   # ~46/min, under the 50/min Business read limit
 ```
+
+Pacing comes from the `api()` helper (1.3s/read on Business → ~22 min per 1,000 topics).
 
 Plain-text extraction from a topic: `"".join(el.itertext())` over the parsed XML, or per-element for structure-aware chunking (one chunk per `section`/`para` works well for RAG).
 
@@ -124,7 +150,7 @@ First run on any instance: do a **no-op round trip** (transform = identity) on a
 
 ## Bulk edit across many topics
 
-- Write limit is ~10/min (Business): sleep ≥6s between PUTs, and expect a 1,000-topic job to take ~2h.
+- Document writes are 10/min on Business (20/min Enterprise) — the `api()` helper paces this automatically. Budget ~1h50m per 1,000 topics on Business (~55 min Enterprise) and tell the user the estimate before starting.
 - Process as: pull all → edit all → validate all → review (show the user a sample of diffs) → push all. Don't interleave pull/push per topic; a validation bug discovered halfway through leaves the library half-migrated.
 - Keep every original XML on disk until the job is verified — it's your rollback (re-PUT the original `content`).
 - Log `(doc_id, modified_at_before, pushed_at)` for every write.

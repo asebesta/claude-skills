@@ -189,14 +189,40 @@ Iterate until `next_page` is null/absent or `page == total_pages`.
 
 ## Rate limits
 
-Per-minute limits vary by plan and endpoint (representative values):
+The REST API is included in both current Paligo plans; only the rates differ ("limited rates on the Business plan, maximum rates on the Enterprise plan"). Limits are per minute, per endpoint+operation:
 
-| Operation | Business | Enterprise |
-|-----------|----------|------------|
-| Documents show/list | 50/min | 250/min |
-| Documents update | 10/min | 20/min |
+| Endpoint | Operation | Business | Enterprise |
+|----------|-----------|---------:|-----------:|
+| Documents | Show/List | 50 | 250 |
+| Documents | Update | 10 | 20 |
+| Folders | Show/List | 50 | 250 |
+| Folders | Update | 10 | 100 |
+| Forks | Show/List | 50 | 250 |
+| Forks | Create / Delete | 20 | 100 |
+| Images | Create / Update | 10 | 20 |
+| Imports | Show/List | 50 | 250 |
+| Imports | **Create** | **1** | **1** |
+| Productions | Show/List | 50 | 250 |
+| Productions | **Create** | **1** | **10** |
+| Outputs | Show | 10 | 10 |
+| Publish Settings | Show/List | 50 | 250 |
+| Taxonomies | Show/List | 50 | 250 |
+| Taxonomies | Create / Update | 10 | 100 |
+| Translation Exports/Imports | Show/List | 50 | 250 |
+| Translation Exports/Imports | **Create** | **1** | **10** |
+| Variables / Variable Sets / Values | Show/List | 50 | 200 |
+| Variables / Variable Sets / Values | Create/Update/Delete | 10 | 20 |
 
-On 429, the response carries a `Retry-After` header (seconds). Always honor it. For bulk jobs, throttle proactively (e.g., ≥1.2s between reads, ≥6s between writes on Business).
+### Staying under the limits
+
+- **Throttle proactively** — don't rely on 429s. Safe pacing with ~10% headroom:
+  - Business: reads ≥ 1.3s apart, document writes ≥ 6.5s apart.
+  - Enterprise: reads ≥ 0.3s apart, document writes ≥ 3.2s apart.
+- **Creates of imports, productions, and translation exports/imports are 1/min on Business** (productions/translations 10/min on Enterprise). Never loop POSTs against these — batch into one production per publish setting and wait ≥60s between creates.
+- **Polling productions/imports**: poll the Show endpoint at 30–60s intervals; output downloads (`Outputs Show`) are capped at 10/min on every plan.
+- **On 429**, the response carries a `Retry-After` header (seconds the client must wait). Always sleep that long, then retry the same request. Treat a 429 as a signal your pacing is wrong, not as normal flow.
+- **Limits are per endpoint+operation**, so interleaving (e.g., reading documents while writing others) doesn't share one bucket — but keep each stream within its own limit.
+- **Bulk job time budgeting (Business)**: full-library pull of N topics ≈ N×1.3s (~22 min per 1,000); bulk edit push ≈ N×6.5s (~1h50m per 1,000). Surface these estimates to the user before starting long jobs.
 
 ## Errors and conflict handling
 

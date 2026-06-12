@@ -67,7 +67,7 @@ For deeper structural validation, Paligo XML is close to DocBook 5.x — the Doc
 - **Releasing auto-approves translations.** Setting `STATUS_RELEASED` approves completed translations in all languages.
 - **Translations align at the element level** via `xinfo:text` attributes. Editing a paragraph's text marks that segment as needing re-translation (expected and visible). Removing or changing its `xinfo:text` attribute orphans the existing translation entirely (silent data loss). This is why the validator treats `xinfo:*` as immutable.
 - **No optimistic locking.** The API has no ETags. Use `checkout` as an advisory lock and compare `modified_at` before PUT.
-- **Write rate limits are low** (~10/min Business, ~20/min Enterprise for document updates; reads ~50/250 per minute). Throttle bulk jobs and honor the `Retry-After` header on 429.
+- **Write rate limits are low** (document updates 10/min Business, 20/min Enterprise; reads 50/250 per minute) and **production/import/translation creates are 1/min on Business** — never loop those POSTs. Throttle proactively (pacing helper in workflows.md), honor `Retry-After` on 429, and give the user a time estimate before bulk jobs (full table and per-1,000-topic budgets in endpoints.md → Rate limits).
 
 ## Reference Files
 
