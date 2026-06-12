@@ -18,6 +18,7 @@ npx skills add asebesta/claude-skills/<skill-name>
 | [bloomerang-api](./bloomerang-api) | Bloomerang CRM API integration reference for donor management features |
 | [donorperfect-api](./donorperfect-api) | DonorPerfect Online XML API integration reference for donor management, gifts, pledges, tributes, and EFT |
 | [ios-app-store-competitor-research](./ios-app-store-competitor-research) | Extract app metadata and screenshots from Apple App Store listings for competitive analysis |
+| [paligo-api](./paligo-api) | Paligo CCMS REST API reference for content round-trips: tree walking, pulling/editing/validating/pushing topic XML, checkout, release status, and translations |
 | [veo-video](./veo-video) | Generate videos using Google's Veo 3.1 API via the @google/genai SDK |
 | [virtuous-api](./virtuous-api) | Virtuous CRM API integration reference for donor management features |
 
@@ -76,6 +77,21 @@ npx skills add asebesta/claude-skills/ios-app-store-competitor-research
 **Triggers on:**
 - App Store URLs (apps.apple.com)
 - Requests like "research this app", "analyze competitor", "get app store info"
+
+### paligo-api
+
+Reference for integrating with the Paligo CCMS REST API. Covers walking the folder/publication tree, pulling full topic XML, safely editing DocBook-based content (preserving Paligo-managed `xinfo:*` and `xml:id` identifiers), validating edits with a bundled pre-push validator script, pushing content back, and handling checkout locks, release status, versioning, and translation impact.
+
+**Install:**
+```bash
+npx skills add asebesta/claude-skills/paligo-api
+```
+
+**Triggers on:**
+- Code involving the Paligo REST API (`{instance}.paligoapp.com/api/v2`)
+- Walking Paligo folders, publications, or forks; bulk content export/import
+- Round-trip editing of Paligo topic XML and pre-push validation
+- Questions about Paligo checkout, release status, versioning, or translation behavior
 
 ### veo-video
 
