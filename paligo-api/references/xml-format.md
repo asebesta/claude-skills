@@ -13,23 +13,39 @@ Paligo's content model is based on **DocBook 5.x**. The `content` field returned
 
 ## Topic shape
 
-A topic is a `<section>` with a `<title>` and block content:
+A topic is a `<section>` with a `<title>` and block content. This is a **real topic** pulled from a live instance (`GET /documents/12`), header and all:
 
 ```xml
-<?xml version="1.0"?>
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-model href="https://resources.paligo.net/schema/docbookxi-5.1-xinfo.rng" type="application/xml" schematypens="http://relaxng.org/ns/structure/1.0"?>
 <section xmlns="http://docbook.org/ns/docbook"
-         xmlns:xinfo="http://ns.paligo.net/xinfo"
-         xml:id="UUID-1234-...">
-  <title xinfo:text="12345">My Topic Title</title>
-  <para xinfo:text="12346">Body text with <emphasis role="bold">bold</emphasis>
-    and <emphasis>italic</emphasis> inline formatting.</para>
-  <note>
-    <para xinfo:text="12347">A note admonition.</para>
-  </note>
+         xmlns:xinfo="http://ns.expertinfo.se/cms/xmlns/1.0"
+         xmlns:xi="http://www.w3.org/2001/XInclude"
+         xmlns:mml="http://www.w3.org/1998/Math/MathML"
+         xmlns:xlink="http://www.w3.org/1999/xlink"
+         xmlns:t="http://ns.expertinfo.se/translation/xmlns/1.0"
+         version="5.0"
+         xinfo:resource="UUID-f8a9de46-..." xinfo:resource-id="12"
+         xinfo:resource-title="Create Your First Publication"
+         xinfo:resource-type="component"
+         xinfo:version-major="1" xinfo:version-minor="0"
+         xml:id="UUID-f8a9de46-..." xml:lang="en">
+  <title xinfo:text="60">Create Your First Publication</title>
+  <para xinfo:text="61">The publication is where you drag and drop your topics…</para>
+  <procedure>
+    <step>
+      <para xinfo:text="62">Creating a Publication resource is similar to creating a topic…</para>
+    </step>
+  </procedure>
 </section>
 ```
 
-(Namespace URIs and attribute shapes can vary by instance/version — always inspect a real topic from the target instance before writing transformation code; never hardcode assumptions beyond "DocBook-flavored XML with Paligo `xinfo:*` attributes".)
+Verified facts from the live instance (Paligo serves **DocBook XI 5.1 + the `xinfo` extension**, schema `docbookxi-5.1-xinfo.rng`):
+- `xinfo` namespace URI is **`http://ns.expertinfo.se/cms/xmlns/1.0`** (Paligo's vendor is "Expert Info" — that's why it's not a `paligo.net` URI). The translation namespace `t` is `http://ns.expertinfo.se/translation/xmlns/1.0`.
+- The root `<section>` carries `xinfo:resource*` / `xinfo:version-*` bookkeeping attributes and `xml:id` = the resource UUID, `xml:lang` = source language.
+- Segment IDs are small integers: `xinfo:text="60"`, `"61"`, … (not UUIDs).
+
+Namespace URIs and attribute shapes can still vary by instance/version — inspect a real topic from the target instance before writing transformation code, but the URIs above hold on current Paligo.
 
 ## Common elements
 

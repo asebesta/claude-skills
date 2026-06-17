@@ -1,11 +1,13 @@
 ---
 name: paligo-api
-description: Paligo CCMS REST API integration reference for programmatic content operations. Use when writing code that interacts with the Paligo API, including walking the folder/publication tree, pulling topic XML content, editing DocBook-based topic XML, validating edits, pushing content back, triggering publications, or handling checkout, release status, versioning, and translation concerns. Triggers on Paligo, paligoapp.com, Paligo topics/publications/forks, or CCMS content round-trip tasks.
+description: Paligo CCMS REST API (v2) integration reference covering the entire API surface. Use when writing code that interacts with the Paligo API for ANY resource — documents/topics/publications, folders, forks, images, search, imports, productions/publishing, publish settings, translation export/import, taxonomies, variables (sets/variants/values), groups, users, and assignments. Includes the content round-trip workflow (walk the tree, pull topic XML, edit DocBook XML, validate, push back), publishing, translation round-trips, asset and metadata management, plus auth, pagination, rate limits, checkout/release-status/versioning rules. Triggers on Paligo, paligoapp.com, api.paligo.net, Paligo topics/publications/forks, or any CCMS content/publishing/translation API task.
 ---
 
 # Paligo REST API
 
-Reference for integrating with the **Paligo CCMS REST API (v2)**. Paligo stores structured documentation as reusable components (topics) in a DocBook 5.x–based XML format. The API supports full round-trip workflows: enumerate content, pull topic XML, edit it, validate, and push it back.
+Reference for integrating with the **Paligo CCMS REST API (v2)**. Paligo stores structured documentation as reusable components (topics) in a DocBook 5.x–based XML format. The API covers content (documents, folders, forks), assets (images), discovery (search), ingestion (imports), publishing (productions, publish settings, outputs), localization (translation export/import), metadata (taxonomies, variables), and administration (groups, users, assignments). The flagship workflow is the content round trip: enumerate content, pull topic XML, edit it, validate, and push it back.
+
+**For any endpoint, object shape, query parameter, or enum, [references/endpoints.md](references/endpoints.md) is the complete catalog of every resource the API exposes** — start there when the task isn't a content edit (e.g. publishing, translations, users, taxonomies, variables, images).
 
 ## Base URL and Authentication
 
@@ -71,7 +73,7 @@ For deeper structural validation, Paligo XML is close to DocBook 5.x — the Doc
 
 ## Reference Files
 
-- **[references/endpoints.md](references/endpoints.md)** — Full endpoint reference: documents, folders, forks, productions, imports, taxonomies, search, rate limits, error handling.
+- **[references/endpoints.md](references/endpoints.md)** — Complete endpoint catalog for the entire API: documents, folders, forks, images, search, imports, outputs, productions, publish settings, translation export/import, taxonomies, variables (sets/variants/variables/values), groups, users, assignments, plus pagination, rate limits, and error handling. Opens with a resource map of every path and verb.
 - **[references/xml-format.md](references/xml-format.md)** — Paligo XML format: DocBook element vocabulary, `xinfo:*` attributes, cross-references, reuse mechanics, editing rules.
 - **[references/workflows.md](references/workflows.md)** — Worked recipes: tree walking, full-library export, round-trip editing with conflict handling, publication traversal, translation-aware editing, triggering publishes.
 
