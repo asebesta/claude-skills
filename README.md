@@ -20,6 +20,7 @@ npx skills add asebesta/claude-skills/<skill-name>
 | [ios-app-store-competitor-research](./ios-app-store-competitor-research) | Extract app metadata and screenshots from Apple App Store listings for competitive analysis |
 | [paligo-api](./paligo-api) | Paligo CCMS REST API reference for content round-trips: tree walking, pulling/editing/validating/pushing topic XML, checkout, release status, and translations |
 | [veo-video](./veo-video) | Generate videos using Google's Veo 3.1 API via the @google/genai SDK |
+| [trmnl-plugins](./trmnl-plugins) | Build custom private plugins and dashboards for TRMNL e-ink displays (incl. TRMNL X): data strategies, Liquid templating, and Design Framework 3.1 markup |
 | [virtuous-api](./virtuous-api) | Virtuous CRM API integration reference for donor management features |
 
 ### blackbaud-renxt-api
@@ -120,6 +121,21 @@ npx skills add asebesta/claude-skills/virtuous-api
 - Code involving Virtuous API integration
 - Donor management features using Virtuous
 - Questions about Virtuous endpoints, authentication, or data models
+
+### trmnl-plugins
+
+Build custom private plugins and dashboards for TRMNL e-ink displays, including the TRMNL X (10.3", 1872×1404, 16-level grayscale). Covers the data layer (webhook push, polling, plugin-merge), Liquid templating with TRMNL's custom filters, and the Design Framework 3.1 markup (views, mashups, items, tables, charts, typography, responsive/bit-depth utilities). Includes copy-paste layout scaffolds and chart/dashboard recipes.
+
+**Install:**
+```bash
+npx skills add asebesta/claude-skills/trmnl-plugins
+```
+
+**Triggers on:**
+- Creating or editing a TRMNL private plugin or dashboard
+- Writing plugin markup/Liquid or sending data via webhook or polling
+- Designing TRMNL layouts, embedding charts, or troubleshooting screen rendering
+- Mentions of TRMNL, TRMNL X, usetrmnl, private plugins, or "merge variables"
 
 ## Skill Structure
 

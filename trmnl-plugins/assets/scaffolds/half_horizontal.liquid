@@ -1,0 +1,21 @@
+{# Paste into the `half_horizontal` layout tab (top/bottom half — wide & short). #}
+{# Favor a single row of metrics or a short list; keep vertical content minimal. #}
+<div class="view view--half_horizontal">
+  <div class="layout">
+    <div class="grid grid--cols-3 gap--small">
+      {% for m in metrics limit: 3 %}
+        <div class="item">
+          <div class="content">
+            <span class="value value--large value--tnums" data-value-format="true">{{ m.value }}</span>
+            <span class="label" data-clamp="1">{{ m.label }}</span>
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <div class="title_bar">
+    <img class="image" src="https://usetrmnl.com/images/plugins/trmnl--render.svg" />
+    <span class="title">{{ plugin_title | default: 'My Plugin' }}</span>
+  </div>
+</div>
