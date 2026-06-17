@@ -1,0 +1,13 @@
+{# Paste into the `quadrant` layout tab (one quarter — very small). #}
+{# Show ONE headline metric or a 1-2 line summary. Anything more will clip. #}
+<div class="view view--quadrant">
+  <div class="layout layout--col">
+    <span class="value value--large value--tnums" data-value-format="true" data-fit-value="true">{{ value }}</span>
+    <span class="label" data-clamp="1">{{ label | default: 'Label' }}</span>
+  </div>
+
+  <div class="title_bar">
+    <img class="image" src="https://usetrmnl.com/images/plugins/trmnl--render.svg" />
+    <span class="title">{{ plugin_title | default: 'My Plugin' }}</span>
+  </div>
+</div>

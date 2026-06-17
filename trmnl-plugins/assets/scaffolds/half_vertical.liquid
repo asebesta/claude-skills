@@ -1,0 +1,21 @@
+{# Paste into the `half_vertical` layout tab (left/right half — narrow & tall). #}
+{# Favor a vertical list; clamp titles so they don't wrap past the narrow width. #}
+<div class="view view--half_vertical">
+  <div class="layout">
+    <div class="flex flex--col gap--small" data-list-limit="true">
+      {% for item in items limit: 6 %}
+        <div class="item">
+          <div class="content">
+            <span class="title title--small" data-clamp="1">{{ item.title }}</span>
+            <span class="label label--small" data-clamp="1">{{ item.subtitle }}</span>
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <div class="title_bar">
+    <img class="image" src="https://usetrmnl.com/images/plugins/trmnl--render.svg" />
+    <span class="title">{{ plugin_title | default: 'My Plugin' }}</span>
+  </div>
+</div>

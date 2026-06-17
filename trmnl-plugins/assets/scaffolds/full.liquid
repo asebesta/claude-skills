@@ -1,0 +1,14 @@
+{# Paste into the `full` layout tab. Fill the layout; keep the title_bar. #}
+<div class="view view--full">
+  <div class="layout">
+    {# --- content goes here --- #}
+    <span class="value value--xlarge value--tnums" data-value-format="true">{{ value }}</span>
+    <span class="label">{{ label | default: 'Label' }}</span>
+  </div>
+
+  <div class="title_bar">
+    <img class="image" src="https://usetrmnl.com/images/plugins/trmnl--render.svg" />
+    <span class="title">{{ plugin_title | default: 'My Plugin' }}</span>
+    <span class="instance">{{ trmnl.plugin_settings.instance_name }}</span>
+  </div>
+</div>
