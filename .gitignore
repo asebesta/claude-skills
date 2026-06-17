@@ -10,3 +10,9 @@ venv/
 
 # Output files
 *.skill
+
+# Secrets
+.env
+.env.*
+**/.env
+**/.env.*
