@@ -56,15 +56,19 @@ Rate-limit buckets are per endpoint+operation, so the per-key pacing above lets 
 
 ## Walk the folder tree (full library inventory)
 
-Folders list subfolders only; documents per folder come from `GET /documents?parent=`.
+A folder's `children` is a **mixed list** of subfolders *and* documents — recurse only the `type == "folder"` entries (calling `GET /folders/{id}` on a component/publication id returns 404). Documents per folder come from `GET /documents?parent=` (paginated, authoritative — includes publications).
 
 ```python
 def paginate(path, params=None):
     params = dict(params or {}, page=1, per_page=100)
     while True:
         data = api("GET", path, params=params)
-        yield from data.get("resources", [])
-        if params["page"] >= data.get("total_pages", 1):
+        # Result array is keyed by resource name (documents/folders/forks/...),
+        # NOT a generic "resources" key — pick the first array-valued key.
+        items = next((v for v in data.values() if isinstance(v, list)), [])
+        yield from items
+        # next_page is "" (empty string) on the last page.
+        if data.get("next_page", "") == "" or params["page"] >= data.get("total_pages", 1):
             break
         params["page"] += 1
 
@@ -76,13 +80,14 @@ def walk_tree(folder_id=None, path=""):
         yield from ((path, d) for d in paginate("/documents") if not d.get("parent_resource"))
     else:
         folder = api("GET", f"/folders/{folder_id}")
-        folders = folder.get("children", [])
+        # children mixes folders + documents; recurse folders only.
+        folders = [c for c in folder.get("children", []) if c.get("type") == "folder"]
         yield from ((path, d) for d in paginate("/documents", {"parent": folder_id}))
     for f in folders:
         yield from walk_tree(f["id"], f"{path}/{f['name']}")
 ```
 
-Verify the root-level behavior (`/folders` response shape, unfiled documents) against the live instance — adjust if the instance returns a wrapper object.
+Make per-folder fetches resilient: wrap `GET /folders/{id}` in try/except and record-and-skip on error rather than aborting the whole walk. A ready-to-run, paced, fault-tolerant implementation is at `scripts/walk_paligo.py` — it writes a tree + flat document inventory + a readable text outline and respects the read rate limit.
 
 ## Walk a publication structure (forks)
 

@@ -38,7 +38,7 @@ All requests/responses are JSON. Timestamps are Unix epoch integers.
 
 This is the core workflow. Full detail and code in [references/workflows.md](references/workflows.md).
 
-1. **Walk the tree** — enumerate folders (`GET /folders`), list documents per folder (`GET /documents?parent=`), or walk a publication's structure via `GET /forks?parent=`.
+1. **Walk the tree** — enumerate folders (`GET /folders`), list documents per folder (`GET /documents?parent=`), or walk a publication's structure via `GET /forks?parent=`. A folder's `children` mixes subfolders *and* documents — recurse only `type == "folder"`. For a full inventory snapshot, run `scripts/walk_paligo.py` (paced, fault-tolerant; writes tree + flat doc list + readable outline).
 2. **Pull** — `GET /documents/{id}`; save the original `content` XML and `modified_at` verbatim (needed for validation and conflict detection).
 3. **Pre-flight checks** — refuse to edit if `checkout` is true (someone else is editing), `release_status` is `STATUS_RELEASED` (locked; needs a new version) or `STATUS_IN_TRANSLATION` (edits will diverge from in-flight translation). If `languages` has entries, warn: text edits invalidate existing translations for changed segments.
 4. **Edit** — operate on the XML tree, never on the string. **Never add, remove, or modify `xinfo:*` attributes or `xml:id`/`id` attributes** — these are Paligo-managed identifiers binding elements to reuse and translation memory. See [references/xml-format.md](references/xml-format.md) for the format and editing rules.

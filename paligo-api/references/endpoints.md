@@ -33,7 +33,7 @@ This file is the **complete endpoint catalog** for the Paligo CCMS REST API v2. 
 | Resource | Base path | Verbs | Notes |
 |----------|-----------|-------|-------|
 | Documents | `/documents` | GET list, GET id, POST, PUT, DELETE | Topics + publications; `content` holds XML |
-| Folders | `/folders` | GET list, GET id, POST | `children` = subfolders only |
+| Folders | `/folders` | GET list, GET id, POST | `children` mixes folders + documents — filter by `type` |
 | Forks | `/forks` | GET list, GET id, POST, DELETE | Reuse references inside structures |
 | Images | `/images` | GET list, GET id, POST, PUT | Binary upload via `multipart/form-data` |
 | Search | `/search` | POST | Beta; documents/taxonomies/forks |
@@ -163,11 +163,20 @@ All optional; send only what you change:
   "name": "My folder",
   "uuid": "UUID-1234-5678",
   "type": "folder",
-  "children": [{ "id": "456", "name": "My subfolder", "type": "folder" }]
+  "children": [
+    { "id": 456, "name": "My subfolder", "type": "folder" },
+    { "id": 789, "name": "A topic in this folder", "type": "component" },
+    { "id": 790, "name": "A publication here", "type": "publication" }
+  ]
 }
 ```
 
-**Important:** `children` contains subfolders only. To enumerate the documents inside a folder, call `GET /documents?parent={folderId}`. Full tree walk = recurse folders + list documents per folder (see workflows.md).
+**Important:** `children` is a **mixed list** — it contains subfolders *and* the folder's own documents (components, publications). **Distinguish by the `type` field**, do not assume every child is a folder. Recursing into a non-folder child with `GET /folders/{id}` returns **404** (a component/publication id is not a folder id).
+
+- **Subfolders** = children where `type == "folder"` → recurse into these.
+- **Documents** = call `GET /documents?parent={folderId}` (paginated, authoritative; returns both components and publications). The non-folder entries in `children` are the same documents but are *not* paginated, so prefer the `/documents?parent=` call for the canonical list.
+
+Full tree walk = recurse `type == "folder"` children + list documents per folder via `/documents?parent=` (see workflows.md; ready-to-run script at `scripts/walk_paligo.py`).
 
 ## Forks
 
@@ -623,7 +632,7 @@ Groups, Users, Assignments and Search are not separately listed in the published
 
 This reference is compiled from the public Paligo API docs (a single rendered page) and partially verified against a live Paligo instance.
 
-**Verified live (✅):** auth; pagination wrapper keyed by resource name with `next_page == ""` at the end; folder tree walk; document object shape (`type: "component"`, empty `content` in list view, `checkout_user: ""`, `external` field, `release_status` as a read label); user object (`username`/`name`/`email`/`type`); the topic XML format (`xinfo` namespace `http://ns.expertinfo.se/cms/xmlns/1.0`, `docbookxi-5.1-xinfo.rng` schema, integer `xinfo:text` segment ids).
+**Verified live (✅):** auth; pagination wrapper keyed by resource name with `next_page == ""` at the end; folder tree walk (**correction:** folder `children` is a *mixed* list of subfolders + documents distinguished by `type`, not subfolders-only — recurse `type == "folder"` only, else `GET /folders/{id}` 404s on a document id; documents come from `/documents?parent=`); document object shape (`type: "component"`, empty `content` in list view, `checkout_user: ""`, `external` field, `release_status` as a read label); user object (`username`/`name`/`email`/`type`); the topic XML format (`xinfo` namespace `http://ns.expertinfo.se/cms/xmlns/1.0`, `docbookxi-5.1-xinfo.rng` schema, integer `xinfo:text` segment ids).
 
 **Still unverified — confirm before depending on exact shapes:**
 - `release_status` read-label ↔ write-constant mapping (needs a controlled write test).
