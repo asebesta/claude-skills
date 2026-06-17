@@ -40,7 +40,7 @@ This file is the **complete endpoint catalog** for the Paligo CCMS REST API v2. 
 | Imports | `/imports` | GET list, GET id, POST | `multipart/form-data`; **create 1/min** |
 | Outputs | `/outputs/{name}` | GET | Returns `application/zip` archive |
 | Productions | `/productions` | GET list, GET id, POST | Publish job; **create 1/min Business** |
-| Publish settings | `/publishsetting` | GET list, GET id | Read-only; created in UI |
+| Publish settings | `/publishsettings` | GET list, GET id | Read-only; created in UI. ✅ path is **plural** (docs say singular — wrong) |
 | Translation export | `/translationexport` | GET list, GET id, POST | JSON create; **create 1/min Business** |
 | Translation import | `/translationimport` | GET list, GET id, POST | `multipart/form-data`; **create 1/min Business** |
 | Taxonomies | `/taxonomies` | GET list, GET id, POST, PUT, DELETE | Hierarchical labels |
@@ -396,8 +396,8 @@ Read-only catalog of publish settings configured in the Paligo UI. Use these ids
 
 | Method | Path | Purpose |
 |--------|------|---------|
-| GET | `/publishsetting` | List publish settings |
-| GET | `/publishsetting/{id}` | Show one |
+| GET | `/publishsettings` | List publish settings (key: `publishsettings`) |
+| GET | `/publishsettings/{id}` | Show one |
 
 ```json
 {
@@ -410,7 +410,9 @@ Read-only catalog of publish settings configured in the Paligo UI. Use these ids
 }
 ```
 
-Path is **singular** (`/publishsetting`). `document_id` is the publication the setting targets; `format` is the output type.
+⚠️ **Path is plural — `/publishsettings` (verified live). The official docs say singular `/publishsetting`, which returns 404.** The object's field list above is from the docs and unverified (the test instance had no publish settings); `document_id` is the publication the setting targets, `format` the output type.
+
+**Layouts:** Paligo *Layouts* (PDF/HTML5 styling templates) have **no API resource** — `GET /layouts` and `/layout` both 404 (verified). Layouts are UI-only; a publish setting bundles publication + layout + output format, and you publish through it via `POST /productions`. There is no way to list, read, or edit layouts via the API.
 
 ## Translation export / import
 
