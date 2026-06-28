@@ -31,6 +31,16 @@ Run this process **per function**. A repo may contain many functions in differen
    - Invoke the function (real event or `ampx sandbox` / `amplify mock function`) and confirm any background work (writes, logs, metrics) actually completes — this is where the "no longer waits for promises" change bites and tests must explicitly cover it.
 6. **Report** what changed and what the user must verify — fold in every subagent report's `verify` and `unresolved` items (especially async side-effects and any `crypto.createCipher` / `url.parse` usages that need real refactoring).
 
+## Report-only mode (audit any repo, change nothing)
+
+When the goal is just to assess a repo's Node-24 readiness — not to upgrade it — run the audit in report mode and stop:
+
+```bash
+scripts/audit_node24.sh --report <repo-path>
+```
+
+This makes **zero changes** and spawns **no fixer**. It prints a consolidated rollup — Amplify generation(s) detected, function counts, current runtime inventory (how many on 20 vs 18/22 vs already 24), per-category finding counts, and a verdict — followed by the file:line details. Use it to triage many repos, attach to a ticket/PR, or decide which functions are worth upgrading. To actually upgrade, switch to the full workflow above (steps 3–6); do **not** run the fixer in this mode.
+
 ## The non-negotiable breaking changes (Node 24 Lambda)
 
 These come from the new runtime, independent of language version. Full detail + fix patterns in [references/breaking-changes.md](references/breaking-changes.md).

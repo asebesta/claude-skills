@@ -1,13 +1,24 @@
 #!/usr/bin/env bash
 # Audit an Amplify Lambda function (or whole repo) for code that the Node.js 24
 # Lambda runtime (nodejs24.x) breaks or deprecates. Prints file:line hits grouped
-# by issue. Read-only — fixes nothing. Each hit is a required manual review.
+# by issue. ALWAYS read-only — fixes nothing. Each hit is a required manual review.
 #
-# Usage: audit_node24.sh <path>     (defaults to current directory)
+# Usage:
+#   audit_node24.sh <path>              Detail hits (default; used by the fix workflow)
+#   audit_node24.sh --report <path>     Report-only repo audit: a consolidated rollup
+#                                       (generation + runtime inventory + issue counts +
+#                                       verdict) followed by detail. Changes nothing —
+#                                       does NOT trigger any fixing. Good for "just
+#                                       audit this repo". <path> defaults to "."
 #
 # Companion docs: ../references/breaking-changes.md  ../references/amplify-config.md
 
 set -euo pipefail
+
+REPORT=0
+case "${1:-}" in
+  -r|--report) REPORT=1; shift ;;
+esac
 ROOT="${1:-.}"
 
 if [ ! -e "$ROOT" ]; then
@@ -28,66 +39,131 @@ else
       "$1" "$ROOT" 2>/dev/null || true; }
 fi
 
+count_lines() { [ -z "$1" ] && echo 0 || { printf '%s\n' "$1" | grep -c . || true; }; }
+
 found_any=0
+issue_total=0
+summary=""   # newline-accumulated "  [TAG] title — N"
+
+# section <tag-is-issue:0|1> <title> <pattern> <note>
 section() {
-  local title="$1" pattern="$2" note="$3"
-  local hits; hits="$(search "$pattern")"
-  if [ -n "$hits" ]; then
+  local is_issue="$1" title="$2" pattern="$3" note="$4"
+  local hits n; hits="$(search "$pattern")"; n="$(count_lines "$hits")"
+  if [ "$n" -gt 0 ]; then
     found_any=1
-    printf '\n### %s\n%s\n' "$title" "$note"
-    printf '%s\n' "$hits"
+    [ "$is_issue" = "1" ] && issue_total=$((issue_total + n))
+    summary="${summary}  ${title} — ${n}"$'\n'
+    DETAILS="${DETAILS}"$'\n'"### ${title}"$'\n'"${note}"$'\n'"${hits}"$'\n'
   fi
 }
 
-echo "== Node 24 Lambda upgrade audit: $ROOT =="
-echo "(no changes made — review each hit against references/breaking-changes.md)"
+DETAILS=""
 
 # --- A. Lambda runtime API removals (highest priority) ---
-section "[A1] Callback-style handler signature (REMOVED)" \
+section 1 "[A1] Callback-style handler signature (REMOVED)" \
   '\(\s*event\s*,\s*context\s*,\s*callback\s*\)' \
   "→ Convert handler to async; return instead of callback(null,x), throw instead of callback(err)."
 
-section "[A1] Other callback-style function signatures" \
+section 1 "[A1] Other callback-style function signatures" \
   '\(\s*err\s*,\s*[A-Za-z_]+\s*\)\s*=>|function\s*\(\s*err\s*,' \
   "→ Possible callback patterns; promisify any callback-only deps used in the handler."
 
-section "[A4] context.callbackWaitsForEmptyEventLoop (REMOVED)" \
+section 1 "[A4] context.callbackWaitsForEmptyEventLoop (REMOVED)" \
   'callbackWaitsForEmptyEventLoop' \
   "→ Delete the line; ensure background work is awaited (see A2)."
 
-section "[A3] context.succeed / fail / done (REMOVED)" \
+section 1 "[A3] context.succeed / fail / done (REMOVED)" \
   'context\.(succeed|fail|done)\s*\(' \
   "→ return (succeed/done-result), throw (fail/done-error) from an async handler."
 
 # --- B. Node 24 / V8 language removals & deprecations ---
-section "[B1] crypto.createCipher / createDecipher (REMOVED — throws)" \
+section 1 "[B1] crypto.createCipher / createDecipher (REMOVED — throws)" \
   'createCipher\s*\(|createDecipher\s*\(' \
   "→ Migrate to createCipheriv/createDecipheriv (real refactor — wire format changes)."
 
-section "[B2] url.parse() (runtime-deprecated — warns)" \
+section 1 "[B2] url.parse() (runtime-deprecated — warns)" \
   '\burl\.parse\s*\(' \
   "→ Prefer new URL(); note query → URLSearchParams and absolute-URL requirement."
 
-section "[B3] new Buffer() / SlowBuffer / tls.createSecurePair (REMOVED)" \
+section 1 "[B3] new Buffer() / SlowBuffer / tls.createSecurePair (REMOVED)" \
   'new\s+Buffer\s*\(|SlowBuffer|tls\.createSecurePair' \
   "→ Buffer.from/alloc; Buffer.allocUnsafeSlow; tls.TLSSocket. Often inside old deps."
 
-section "[B7] AWS SDK v2 import (separate, larger migration)" \
+section 1 "[B7] AWS SDK v2 import (separate, larger migration)" \
   "require\(['\"]aws-sdk['\"]\)|from\s+['\"]aws-sdk['\"]" \
   "→ Node 24 bundles SDK v3 only. Migrate to @aws-sdk/* and bundle it yourself."
 
-# --- Config: current runtime strings to flip ---
-section "[CONFIG] Existing runtime strings (Gen 1 CloudFormation)" \
+# --- Config: current runtime strings to flip (informational, not counted as code issues) ---
+section 0 "[CONFIG] Existing runtime strings (Gen 1 CloudFormation)" \
   'nodejs(18|20|22)\.x' \
   "→ Change to nodejs24.x in <name>-cloudformation-template.json."
 
-section "[CONFIG] defineFunction runtime (Gen 2)" \
+section 0 "[CONFIG] defineFunction runtime (Gen 2)" \
   'runtime\s*:\s*(18|20|22)\b' \
-  "→ Set runtime: 24 in amplify/functions/<name>/resource.ts (or CDK escape hatch)."
+  "→ Set runtime: 24 in amplify/functions/<name>/resource.ts."
 
-section "[TOOLCHAIN] @types/node / engines pinned below 24" \
+section 0 "[TOOLCHAIN] @types/node / engines pinned below 24" \
   '"@types/node"\s*:\s*"[^"]*1[0-9]|"@types/node"\s*:\s*"[^"]*2[0-3]|"node"\s*:\s*"[^"]*<\s*24' \
   "→ Bump @types/node to ^24 and engines.node to >=24."
+
+# ---------------------------------------------------------------------------
+# Report-only rollup
+# ---------------------------------------------------------------------------
+if [ "$REPORT" = "1" ]; then
+  # Generation detection + function discovery (read-only).
+  gen1_n="$(find "$ROOT" -path '*/amplify/backend/function/*-cloudformation-template.json' \
+            -not -path '*/node_modules/*' 2>/dev/null | wc -l | tr -d ' ')"
+  gen2_files="$(search 'defineFunction' | cut -d: -f1 | sort -u)"
+  gen2_n="$(count_lines "$gen2_files")"
+  rt_20="$(count_lines "$(search 'nodejs20\.x|runtime\s*:\s*20\b')")"
+  rt_18_22="$(count_lines "$(search 'nodejs(18|22)\.x|runtime\s*:\s*(18|22)\b')")"
+  rt_24="$(count_lines "$(search 'nodejs24\.x|runtime\s*:\s*24\b')")"
+
+  gens=""
+  [ "$gen1_n" -gt 0 ] && gens="Gen 1"
+  [ "$gen2_n" -gt 0 ] && gens="${gens:+$gens + }Gen 2"
+  [ -z "$gens" ] && gens="none detected (is this an Amplify repo?)"
+
+  echo "================================================================"
+  echo " Node 24 Lambda upgrade — REPORT-ONLY AUDIT (no files changed)"
+  echo " Path: $ROOT"
+  echo "================================================================"
+  echo
+  echo "## Summary"
+  echo "Amplify generation:   $gens"
+  echo "Functions discovered: Gen 1 = $gen1_n, Gen 2 = $gen2_n"
+  echo "Runtime inventory:    on 20 = $rt_20, on 18/22 = $rt_18_22, already on 24 = $rt_24"
+  echo "Code findings (A/B):  $issue_total total"
+  if [ -n "$summary" ]; then
+    echo "By category:"
+    printf '%s' "$summary"
+  fi
+  echo
+  if [ "$issue_total" -gt 0 ]; then
+    echo "Verdict: NEEDS CODE FIXES — $issue_total greppable finding(s) before this repo is Node-24-safe."
+  else
+    echo "Verdict: no greppable code findings. Still REQUIRES the manual [A2] review below."
+  fi
+  echo
+  echo "## Manual review required (not greppable)"
+  echo "[A2] Fire-and-forget promises: Lambda no longer drains the event loop."
+  echo "     Inspect each handler for promises NOT awaited/returned — logging.flush(),"
+  echo "     analytics/metrics, SNS/SQS/EventBridge publishes, DynamoDB/RDS writes."
+  echo
+  echo "## Details"
+  if [ "$found_any" = "1" ]; then printf '%s\n' "$DETAILS"; else echo "(no greppable patterns)"; fi
+  echo
+  echo "Report-only: this command makes NO changes and does NOT run any fixer."
+  echo "To fix, follow the SKILL.md workflow (audit → flip runtime → delegate fixes)."
+  exit 0
+fi
+
+# ---------------------------------------------------------------------------
+# Default (detail) mode — used by the per-function fix workflow
+# ---------------------------------------------------------------------------
+echo "== Node 24 Lambda upgrade audit: $ROOT =="
+echo "(no changes made — review each hit against references/breaking-changes.md)"
+if [ "$found_any" = "1" ]; then printf '%s\n' "$DETAILS"; fi
 
 echo ""
 echo "== Manual review required (not greppable) =="
