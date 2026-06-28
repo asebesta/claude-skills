@@ -14,6 +14,7 @@ npx skills add asebesta/claude-skills/<skill-name>
 
 | Skill | Description |
 |-------|-------------|
+| [amplify-lambda-node24-upgrade](./amplify-lambda-node24-upgrade) | Upgrade an AWS Amplify (Gen 1 or Gen 2) backend Lambda function from the Node.js 20 runtime to Node.js 24, including the runtime config change and the required source fixes (callback handlers, unresolved promises, removed context APIs) |
 | [blackbaud-renxt-api](./blackbaud-renxt-api) | Blackbaud Raiser's Edge NXT SKY API integration reference for nonprofit fundraising and donor management |
 | [bloomerang-api](./bloomerang-api) | Bloomerang CRM API integration reference for donor management features |
 | [donorperfect-api](./donorperfect-api) | DonorPerfect Online XML API integration reference for donor management, gifts, pledges, tributes, and EFT |
@@ -22,6 +23,20 @@ npx skills add asebesta/claude-skills/<skill-name>
 | [veo-video](./veo-video) | Generate videos using Google's Veo 3.1 API via the @google/genai SDK |
 | [trmnl-plugins](./trmnl-plugins) | Build custom private plugins and dashboards for TRMNL e-ink displays (incl. TRMNL X): data strategies, Liquid templating, and Design Framework 3.1 markup |
 | [virtuous-api](./virtuous-api) | Virtuous CRM API integration reference for donor management features |
+
+### amplify-lambda-node24-upgrade
+
+Migrate AWS Amplify backend Lambda functions from the Node.js 20 runtime (`nodejs20.x`) to Node.js 24 (`nodejs24.x`). Use when upgrading or bumping the Node runtime of an Amplify Gen 1 or Gen 2 function, or when a function breaks after moving to `nodejs24.x`. Covers locating the runtime setting (Gen 1 CloudFormation template, Gen 2 `defineFunction` / CDK escape hatch) plus the source-code changes the new runtime forces: removed callback-style handlers, removed `context.callbackWaitsForEmptyEventLoop` / `succeed` / `fail` / `done`, the "Lambda no longer waits for unresolved promises" behavior, and Node 20→24 language changes. Includes an audit script that flags every breaking pattern by file:line.
+
+**Install:**
+```bash
+npx skills add asebesta/claude-skills/amplify-lambda-node24-upgrade
+```
+
+**Triggers on:**
+- Upgrading an Amplify Gen 1/Gen 2 Lambda from Node 20 (or 18/22) to Node 24
+- `nodejs24.x`, `defineFunction({ runtime })`, or callback handlers breaking after a runtime bump
+- Auditing an Amplify backend for Node 24 runtime compatibility
 
 ### blackbaud-renxt-api
 
