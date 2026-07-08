@@ -17,6 +17,7 @@ npx skills add asebesta/claude-skills/<skill-name>
 | [amplify-lambda-node24-upgrade](./amplify-lambda-node24-upgrade) | Upgrade an AWS Amplify (Gen 1 or Gen 2) backend Lambda function from the Node.js 20 runtime to Node.js 24, including the runtime config change and the required source fixes (callback handlers, unresolved promises, removed context APIs) |
 | [blackbaud-renxt-api](./blackbaud-renxt-api) | Blackbaud Raiser's Edge NXT SKY API integration reference for nonprofit fundraising and donor management |
 | [bloomerang-api](./bloomerang-api) | Bloomerang CRM API integration reference for donor management features |
+| [donordock-api](./donordock-api) | DonorDock Public API integration reference for nonprofit CRM: contacts, gifts, activities, campaigns, appeals, funds, badges, marketing lists, and template emails |
 | [donorperfect-api](./donorperfect-api) | DonorPerfect Online XML API integration reference for donor management, gifts, pledges, tributes, and EFT |
 | [ios-app-store-competitor-research](./ios-app-store-competitor-research) | Extract app metadata and screenshots from Apple App Store listings for competitive analysis |
 | [paligo-api](./paligo-api) | Paligo CCMS REST API reference for content round-trips: tree walking, pulling/editing/validating/pushing topic XML, checkout, release status, and translations |
@@ -65,6 +66,20 @@ npx skills add asebesta/claude-skills/bloomerang-api
 - Code involving Bloomerang API integration
 - Donor management features using Bloomerang
 - Questions about Bloomerang endpoints, authentication, or data models
+
+### donordock-api
+
+Reference for integrating with the DonorDock Public API (v1). Use when writing code that interacts with the DonorDock nonprofit CRM API, including Contacts, Gifts, Activities, Campaigns, Appeals, Funds, Badges, Marketing Lists, Event Attendance, closed Gift Batches, template emails, and metadata (users, email templates, custom field definitions). Covers Basic auth, page-envelope pagination, contact-linking identifiers, and incremental sync patterns.
+
+**Install:**
+```bash
+npx skills add asebesta/claude-skills/donordock-api
+```
+
+**Triggers on:**
+- Code involving DonorDock API integration (`public-api.donordock.com`)
+- Donor management or gift sync features using DonorDock
+- Questions about DonorDock endpoints, authentication, or data models
 
 ### donorperfect-api
 
