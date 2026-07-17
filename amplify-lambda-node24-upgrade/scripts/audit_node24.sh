@@ -106,6 +106,25 @@ section 0 "[TOOLCHAIN] @types/node / engines pinned below 24" \
   '"@types/node"\s*:\s*"[^"]*1[0-9]|"@types/node"\s*:\s*"[^"]*2[0-3]|"node"\s*:\s*"[^"]*<\s*24' \
   "→ Bump @types/node to ^24 and engines.node to >=24."
 
+# [CONFIG] Gen 2 function dirs whose own package.json lacks "type": "module".
+# The runtime-24-capable @aws-amplify/backend ships a deployer that loads
+# backend.ts as real ESM (tsx tsImport); a typeless package.json CJS-scopes that
+# dir's resource.ts, hiding its named exports and failing synth with
+# "does not provide an export named ...". Absence check, so not a section() grep.
+if ls "$ROOT"/amplify/backend.ts >/dev/null 2>&1; then
+  esm_hits=""
+  while IFS= read -r pj; do
+    grep -q '"type"[[:space:]]*:[[:space:]]*"module"' "$pj" 2>/dev/null || esm_hits="${esm_hits}${pj}: missing \"type\": \"module\""$'\n'
+  done < <(find "$ROOT/amplify" -mindepth 2 -maxdepth 4 -name package.json -not -path '*/node_modules/*' 2>/dev/null)
+  esm_hits="${esm_hits%$'\n'}"
+  n_esm="$(count_lines "$esm_hits")"
+  if [ "$n_esm" -gt 0 ]; then
+    found_any=1
+    summary="${summary}  [CONFIG] Function package.json without type:module (Gen 2 deployer ESM) — ${n_esm}"$'\n'
+    DETAILS="${DETAILS}"$'\n'"### [CONFIG] Function package.json without \"type\": \"module\" (Gen 2 deployer ESM)"$'\n'"→ Add \"type\": \"module\" (and rename any CJS jest.config.js → jest.config.cjs) before upgrading @aws-amplify/backend — see amplify-config.md 'Deployer 2.x ESM module scoping'."$'\n'"${esm_hits}"$'\n'
+  fi
+fi
+
 # ---------------------------------------------------------------------------
 # Report-only rollup
 # ---------------------------------------------------------------------------
