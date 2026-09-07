@@ -21,6 +21,7 @@ npx skills add asebesta/claude-skills/<skill-name>
 | [donorperfect-api](./donorperfect-api) | DonorPerfect Online XML API integration reference for donor management, gifts, pledges, tributes, and EFT |
 | [ios-app-store-competitor-research](./ios-app-store-competitor-research) | Extract app metadata and screenshots from Apple App Store listings for competitive analysis |
 | [paligo-api](./paligo-api) | Paligo CCMS REST API reference for content round-trips: tree walking, pulling/editing/validating/pushing topic XML, checkout, release status, and translations |
+| [printify-api](./printify-api) | Printify print-on-demand API reference and CLI: catalog (blueprints, print providers, variants), uploads, product creation and publishing, orders, personalization, webhooks, and OAuth |
 | [veo-video](./veo-video) | Generate videos using Google's Veo 3.1 API via the @google/genai SDK |
 | [trmnl-plugins](./trmnl-plugins) | Build custom private plugins and dashboards for TRMNL e-ink displays (incl. TRMNL X): data strategies, Liquid templating, and Design Framework 3.1 markup |
 | [virtuous-api](./virtuous-api) | Virtuous CRM API integration reference for donor management features |
@@ -123,6 +124,20 @@ npx skills add asebesta/claude-skills/paligo-api
 - Walking Paligo folders, publications, or forks; bulk content export/import
 - Round-trip editing of Paligo topic XML and pre-push validation
 - Questions about Paligo checkout, release status, versioning, or translation behavior
+
+### printify-api
+
+Reference and CLI for the Printify print-on-demand Public API (V1 REST + V2 catalog shipping). Covers the catalog (blueprints → print providers → variants and placeholders → shipping), uploading artwork, creating and publishing products (including the custom-store publish lifecycle), submitting and tracking orders (shipping quotes, express/economy, cancel, reprint/refund/address-change support requests), personalization previews, webhooks with HMAC verification, and OAuth for platform apps. Includes a dependency-free `scripts/printify` CLI with retry, pagination, and macOS Keychain token storage (env var fallback for CI and Linux).
+
+**Install:**
+```bash
+npx skills add asebesta/claude-skills/printify-api
+```
+
+**Triggers on:**
+- Code involving the Printify API (`api.printify.com`) or the Printful Enterprise mirror
+- Building print-on-demand product creation, order submission, or fulfillment tracking
+- Questions about Printify blueprints, print providers, variants, placeholders, shipping methods, or webhooks
 
 ### veo-video
 

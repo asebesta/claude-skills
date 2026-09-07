@@ -1,0 +1,295 @@
+#!/usr/bin/env python3
+"""Minimal dependency-free CLI for the Printify Public API.
+
+Token lookup order: $PRINTIFY_API_TOKEN, then the macOS Keychain (item stored
+by `printify auth set`). Adds the required User-Agent header, retries 429/5xx
+with backoff, and can walk every page of a paginated list with --all.
+
+Usage:
+  printify auth set                    # prompt for token, store in macOS Keychain
+  printify auth status                 # where the token comes from (masked)
+  printify auth remove                 # delete the Keychain item
+  printify get  <path> [-q key=value ...] [--all] [--raw]
+  printify post <path> [-d '<json>' | -f body.json]
+  printify put  <path> [-d '<json>' | -f body.json]
+  printify delete <path> [-q key=value ...]
+  printify shops                       # shortcut for GET /v1/shops.json
+
+<path> is relative to the API host and must start with /v1 or /v2, e.g.
+  printify get /v1/shops.json
+  printify get /v1/shops/5432/products.json -q limit=50 --all
+  printify post /v1/shops/5432/orders.json -f order.json
+  printify delete /v1/shops/5432/webhooks/abc.json -q host=example.com
+
+Env:
+  PRINTIFY_API_TOKEN   overrides the Keychain; required on Linux/CI
+  PRINTIFY_PROFILE     Keychain account name (default "default"); lets one
+                       machine hold tokens for several Printify accounts
+  PRINTIFY_API_BASE    optional host override (default https://api.printify.com;
+                       use https://enterprise.printful.com/api/pfy/public for
+                       Printful Enterprise)
+  PRINTIFY_USER_AGENT  optional (default "printify-api-skill")
+"""
+import argparse
+import getpass
+import json
+import os
+import platform
+import ssl
+import subprocess
+import sys
+import time
+import urllib.error
+import urllib.parse
+import urllib.request
+
+DEFAULT_BASE = "https://api.printify.com"
+MAX_RETRIES = 5
+KEYCHAIN_SERVICE = "printify-api-token"
+
+
+def keychain_account():
+    return os.environ.get("PRINTIFY_PROFILE", "default")
+
+
+def keychain_available():
+    return platform.system() == "Darwin" and os.path.exists("/usr/bin/security")
+
+
+def keychain_get():
+    """Return the stored token, or None if absent/unavailable."""
+    if not keychain_available():
+        return None
+    r = subprocess.run(
+        ["/usr/bin/security", "find-generic-password", "-s", KEYCHAIN_SERVICE,
+         "-a", keychain_account(), "-w"],
+        capture_output=True, text=True)
+    if r.returncode != 0:
+        return None
+    return r.stdout.strip() or None
+
+
+def keychain_set(token):
+    r = subprocess.run(
+        ["/usr/bin/security", "add-generic-password", "-s", KEYCHAIN_SERVICE,
+         "-a", keychain_account(), "-l", "Printify API token (%s)" % keychain_account(),
+         "-U", "-w", token],
+        capture_output=True, text=True)
+    if r.returncode != 0:
+        die("keychain write failed: %s" % r.stderr.strip())
+
+
+def keychain_remove():
+    r = subprocess.run(
+        ["/usr/bin/security", "delete-generic-password", "-s", KEYCHAIN_SERVICE,
+         "-a", keychain_account()],
+        capture_output=True, text=True)
+    return r.returncode == 0
+
+
+def resolve_token():
+    """(token, source) — env var wins so CI and one-off overrides stay simple."""
+    env = os.environ.get("PRINTIFY_API_TOKEN")
+    if env:
+        return env, "env:PRINTIFY_API_TOKEN"
+    kc = keychain_get()
+    if kc:
+        return kc, "keychain:%s/%s" % (KEYCHAIN_SERVICE, keychain_account())
+    return None, None
+
+
+def mask(token):
+    return token[:6] + "..." + token[-4:] if len(token) > 14 else "***"
+
+
+def cmd_auth(args):
+    if args.action == "set":
+        if sys.stdin.isatty():
+            token = getpass.getpass("Printify API token: ").strip()
+        else:
+            token = sys.stdin.read().strip()
+        if not token:
+            die("no token given")
+        if not keychain_available():
+            die("macOS Keychain not available here; export PRINTIFY_API_TOKEN instead")
+        keychain_set(token)
+        print("stored in Keychain as %s / %s" % (KEYCHAIN_SERVICE, keychain_account()))
+    elif args.action == "status":
+        token, source = resolve_token()
+        if not token:
+            print("no token found (set PRINTIFY_API_TOKEN or run: printify auth set)")
+            sys.exit(1)
+        print("source: %s\ntoken:  %s" % (source, mask(token)))
+    elif args.action == "remove":
+        if not keychain_available():
+            die("macOS Keychain not available here")
+        print("removed" if keychain_remove() else "nothing stored for account %r" % keychain_account())
+
+
+def ssl_context():
+    """Default context, falling back to certifi or the macOS/Linux system bundle
+    for Python builds that ship without a usable CA path."""
+    ctx = ssl.create_default_context()
+    if ctx.cert_store_stats().get("x509_ca", 0) > 0:
+        return ctx
+    candidates = []
+    try:
+        import certifi  # noqa: F401
+        candidates.append(certifi.where())
+    except ImportError:
+        pass
+    candidates += ["/etc/ssl/cert.pem", "/etc/ssl/certs/ca-certificates.crt"]
+    for cafile in candidates:
+        if os.path.exists(cafile):
+            return ssl.create_default_context(cafile=cafile)
+    return ctx
+
+
+def die(msg, code=1):
+    print(msg, file=sys.stderr)
+    sys.exit(code)
+
+
+def request(method, path, query=None, body=None):
+    token, _ = resolve_token()
+    if not token:
+        die("no API token: export PRINTIFY_API_TOKEN or run `printify auth set`")
+    base = os.environ.get("PRINTIFY_API_BASE", DEFAULT_BASE).rstrip("/")
+    if not path.startswith("/v1") and not path.startswith("/v2"):
+        die("path must start with /v1 or /v2 (got %r)" % path)
+    url = base + path
+    if query:
+        sep = "&" if "?" in url else "?"
+        url += sep + urllib.parse.urlencode(query)
+    headers = {
+        "Authorization": "Bearer " + token,
+        "User-Agent": os.environ.get("PRINTIFY_USER_AGENT", "printify-api-skill"),
+        "Accept": "application/json",
+    }
+    data = None
+    if body is not None:
+        data = json.dumps(body).encode("utf-8")
+        headers["Content-Type"] = "application/json;charset=utf-8"
+
+    ctx = ssl_context()
+    delay = 2.0
+    for attempt in range(MAX_RETRIES + 1):
+        req = urllib.request.Request(url, data=data, method=method, headers=headers)
+        try:
+            with urllib.request.urlopen(req, timeout=120, context=ctx) as resp:
+                raw = resp.read().decode("utf-8")
+                return resp.status, (json.loads(raw) if raw.strip() else {})
+        except urllib.error.HTTPError as e:
+            raw = e.read().decode("utf-8", "replace")
+            try:
+                payload = json.loads(raw) if raw.strip() else {}
+            except ValueError:
+                payload = {"raw": raw}
+            retryable = e.code == 429 or e.code in (502, 503)
+            if retryable and attempt < MAX_RETRIES:
+                retry_after = e.headers.get("Retry-After")
+                wait = float(retry_after) if retry_after and retry_after.isdigit() else delay
+                print("HTTP %d, retrying in %.0fs" % (e.code, wait), file=sys.stderr)
+                time.sleep(wait)
+                delay = min(delay * 2, 60)
+                continue
+            return e.code, payload
+        except urllib.error.URLError as e:
+            die("request failed: %s" % e.reason)
+    die("gave up after %d retries" % MAX_RETRIES)
+
+
+def parse_query(items):
+    q = {}
+    for item in items or []:
+        if "=" not in item:
+            die("bad -q value %r (expected key=value)" % item)
+        k, v = item.split("=", 1)
+        q[k] = v
+    return q
+
+
+def load_body(args):
+    if args.data and args.file:
+        die("use either -d or -f, not both")
+    if args.data:
+        return json.loads(args.data)
+    if args.file:
+        with open(args.file) as fh:
+            return json.load(fh)
+    return None
+
+
+def emit(status, payload, raw=False):
+    if raw:
+        print(json.dumps(payload))
+    else:
+        print(json.dumps(payload, indent=2))
+    if status >= 400:
+        sys.exit(2)
+
+
+def main():
+    p = argparse.ArgumentParser(prog="printify", description=__doc__,
+                                formatter_class=argparse.RawDescriptionHelpFormatter)
+    sub = p.add_subparsers(dest="cmd", required=True)
+
+    for verb in ("get", "delete"):
+        sp = sub.add_parser(verb)
+        sp.add_argument("path")
+        sp.add_argument("-q", "--query", action="append", metavar="KEY=VALUE")
+        sp.add_argument("--raw", action="store_true", help="compact JSON output")
+        if verb == "get":
+            sp.add_argument("--all", action="store_true",
+                            help="follow pagination and return every item in one array")
+
+    for verb in ("post", "put"):
+        sp = sub.add_parser(verb)
+        sp.add_argument("path")
+        sp.add_argument("-q", "--query", action="append", metavar="KEY=VALUE")
+        sp.add_argument("-d", "--data", help="inline JSON body")
+        sp.add_argument("-f", "--file", help="path to a JSON body file")
+        sp.add_argument("--raw", action="store_true")
+
+    sub.add_parser("shops", help="list shops (GET /v1/shops.json)")
+
+    sp = sub.add_parser("auth", help="manage the token in the macOS Keychain")
+    sp.add_argument("action", choices=["set", "status", "remove"])
+
+    args = p.parse_args()
+
+    if args.cmd == "auth":
+        cmd_auth(args)
+        return
+
+    if args.cmd == "shops":
+        status, payload = request("GET", "/v1/shops.json")
+        emit(status, payload)
+        return
+
+    query = parse_query(getattr(args, "query", None))
+
+    if args.cmd == "get" and args.all:
+        items = []
+        page = int(query.pop("page", 1))
+        while True:
+            q = dict(query, page=page)
+            status, payload = request("GET", args.path, q)
+            if status >= 400 or not isinstance(payload, dict) or "data" not in payload:
+                emit(status, payload, args.raw)
+                return
+            items.extend(payload["data"])
+            last = payload.get("last_page")
+            if last is None or page >= int(last) or not payload.get("next_page_url"):
+                break
+            page += 1
+        emit(200, items, args.raw)
+        return
+
+    body = load_body(args) if args.cmd in ("post", "put") else None
+    status, payload = request(args.cmd.upper(), args.path, query, body)
+    emit(status, payload, args.raw)
+
+
+if __name__ == "__main__":
+    main()
